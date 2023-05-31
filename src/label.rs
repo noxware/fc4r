@@ -1,4 +1,7 @@
+use serde::Deserialize;
+use std::collections::HashMap;
 use std::collections::HashSet;
+use std::error::Error;
 
 struct LabelDef {
     name: String,
@@ -7,20 +10,30 @@ struct LabelDef {
     description: String,
 }
 
-struct LabelLibrary {
+#[derive(Deserialize)]
+struct RawLabelDef {
+    #[serde(default)]
+    aliases: Vec<String>,
+    #[serde(default)]
+    implies: Vec<String>,
+    #[serde(default)]
+    description: String,
+}
+
+pub struct LabelLibrary {
     label_defs: Vec<LabelDef>,
 }
 
 impl LabelLibrary {
-    fn build(defs: Vec<LabelDef>) -> Result<LabelLibrary, String> {
+    fn build(defs: Vec<LabelDef>) -> Result<Self, Box<dyn Error>> {
         Self::validate(&defs)?;
-        Ok(LabelLibrary { label_defs: defs })
+        Ok(Self { label_defs: defs })
     }
 
     /// Validates that the label definitions are valid.
     ///
     /// This is a placeholder for now.
-    fn validate(defs: &Vec<LabelDef>) -> Result<(), String> {
+    fn validate(defs: &Vec<LabelDef>) -> Result<(), Box<dyn Error>> {
         Ok(())
     }
 
@@ -94,6 +107,21 @@ impl LabelLibrary {
     fn get_aliases(&self, name: &str) -> Option<&Vec<String>> {
         let def = self.get_label_def(name)?;
         Some(&def.aliases)
+    }
+
+    pub fn from_toml(toml: &str) -> Result<Self, Box<dyn Error>> {
+        let raw_labels: HashMap<String, RawLabelDef> = toml::from_str(toml)?;
+        let labels = raw_labels
+            .into_iter()
+            .map(|(name, raw)| LabelDef {
+                name,
+                aliases: raw.aliases,
+                implies: raw.implies,
+                description: raw.description,
+            })
+            .collect();
+
+        Self::build(labels)
     }
 }
 
@@ -249,5 +277,25 @@ mod tests {
         let library = setup_library();
         let def = library.get_aliases("cat").unwrap();
         assert_eq!(def, &["kitty", "purrr"]);
+    }
+
+    #[test]
+    fn from_toml_works() {
+        let toml = r#"
+            [label]
+            aliases = ["alias"]
+            implies = ["implied"]
+            description = "a label"
+
+            [implied]
+        "#;
+
+        let labels = LabelLibrary::from_toml(toml).unwrap();
+
+        let label_name = labels.resolve("alias").unwrap();
+        let label_description = labels.get_description("label").unwrap();
+
+        assert_eq!(label_name, "label");
+        assert_eq!(label_description, "a label");
     }
 }
