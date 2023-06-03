@@ -1,0 +1,6 @@
+[label]
+description="a label"
+aliases=["alias"]
+implies=["implied"]
+
+[implied]

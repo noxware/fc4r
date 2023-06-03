@@ -46,7 +46,7 @@ impl LabelLibrary {
         Some(def)
     }
 
-    fn resolve(&self, name: &str) -> Option<&str> {
+    pub fn resolve(&self, name: &str) -> Option<&str> {
         let def = self.get_label_def(name)?;
         Some(&def.name)
     }
@@ -99,12 +99,12 @@ impl LabelLibrary {
         Some(labels)
     }
 
-    fn get_description(&self, name: &str) -> Option<&str> {
+    pub fn get_description(&self, name: &str) -> Option<&str> {
         let def = self.get_label_def(name)?;
         Some(&def.description)
     }
 
-    fn get_aliases(&self, name: &str) -> Option<&Vec<String>> {
+    pub fn get_aliases(&self, name: &str) -> Option<&Vec<String>> {
         let def = self.get_label_def(name)?;
         Some(&def.aliases)
     }
