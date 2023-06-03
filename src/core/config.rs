@@ -3,7 +3,7 @@ use std::fs::File;
 use std::io::Read;
 use std::path::Path;
 
-use crate::label::LabelLibrary;
+use crate::core::label::LabelLibrary;
 use std::error::Error;
 
 pub struct Config {
@@ -11,6 +11,7 @@ pub struct Config {
 }
 
 impl Config {
+    // TODO: Remove file system dependency from core.
     pub fn load(path: &str) -> Result<Self, Box<dyn Error>> {
         let mut labels_file = File::open(path)?;
         let mut labels_content = String::new();
