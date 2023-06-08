@@ -46,67 +46,67 @@ impl LabelLibrary {
         Some(def)
     }
 
-    pub fn resolve(&self, name: &str) -> Option<&str> {
+    pub fn resolve_known(&self, name: &str) -> Option<&str> {
         let def = self.get_label_def(name)?;
         Some(&def.name)
     }
 
-    fn expand_into<'a>(&'a self, labels: &mut HashSet<&'a str>, name: &str) -> Option<()> {
-        let def = self.get_label_def(name)?;
-
-        labels.insert(&def.name);
-
-        for alias in def.aliases.iter() {
-            labels.insert(alias);
+    pub fn resolve<'a>(&'a self, name: &'a str) -> &str {
+        match self.resolve_known(name) {
+            Some(known_name) => known_name,
+            None => name,
         }
+    }
 
-        for implied in def.implies.iter() {
-            if !labels.contains(implied.as_str()) {
-                self.expand_into(labels, implied)?;
+    fn expand_into<'a>(&'a self, labels: &mut HashSet<&'a str>, name: &'a str) -> () {
+        match self.get_label_def(name) {
+            Some(def) => {
+                labels.insert(&def.name);
+
+                for alias in def.aliases.iter() {
+                    labels.insert(alias);
+                }
+
+                for implied in def.implies.iter() {
+                    if !labels.contains(implied.as_str()) {
+                        self.expand_into(labels, implied);
+                    }
+                }
+            }
+            None => {
+                labels.insert(name);
             }
         }
-
-        Some(())
     }
 
-    fn expand(&self, name: &str) -> Option<Vec<&str>> {
+    fn expand<'a>(&'a self, name: &'a str) -> Vec<&str> {
         let mut labels = HashSet::new();
-        self.expand_into(&mut labels, name)?;
-        Some(labels.into_iter().collect())
+        self.expand_into(&mut labels, name);
+        labels.into_iter().collect()
     }
 
-    fn expand_and_sort(&self, name: &str) -> Option<Vec<&str>> {
-        let mut labels = self.expand(name)?;
-        labels.sort();
-        Some(labels)
-    }
-
-    fn expand_all(&self, names: &[&str]) -> Option<Vec<&str>> {
+    fn expand_all<'a>(&'a self, names: &[&'a str]) -> Vec<&str> {
         let mut labels = HashSet::new();
 
         for name in names.iter() {
-            self.expand_into(&mut labels, name)?;
+            self.expand_into(&mut labels, name);
         }
 
-        let labels: Vec<&str> = labels.into_iter().collect();
-
-        Some(labels)
+        labels.into_iter().collect()
     }
 
-    fn expand_all_and_sort(&self, names: &[&str]) -> Option<Vec<&str>> {
-        let mut labels = self.expand_all(names)?;
-        labels.sort();
-        Some(labels)
+    pub fn get_description(&self, name: &str) -> &str {
+        match self.get_label_def(name) {
+            Some(def) => &def.description,
+            None => "",
+        }
     }
 
-    pub fn get_description(&self, name: &str) -> Option<&str> {
-        let def = self.get_label_def(name)?;
-        Some(&def.description)
-    }
-
-    pub fn get_aliases(&self, name: &str) -> Option<&Vec<String>> {
-        let def = self.get_label_def(name)?;
-        Some(&def.aliases)
+    pub fn get_aliases(&self, name: &str) -> &[String] {
+        match self.get_label_def(name) {
+            Some(def) => &def.aliases.as_slice(),
+            None => &[],
+        }
     }
 
     pub fn from_toml(toml: &str) -> Result<Self, Box<dyn Error>> {
@@ -188,21 +188,21 @@ mod tests {
     fn resolve_works_with_names_and_aliases() {
         let library = setup_library();
 
-        assert_eq!(library.resolve("cat").unwrap(), "cat");
-        assert_eq!(library.resolve("kitty").unwrap(), "cat");
-        assert_eq!(library.resolve("purrr").unwrap(), "cat");
-        assert_eq!(library.resolve("adorable").unwrap(), "cute");
-        assert_eq!(library.resolve("kawaii").unwrap(), "cute");
-        assert_eq!(library.resolve("memes").unwrap(), "meme");
+        assert_eq!(library.resolve("cat"), "cat");
+        assert_eq!(library.resolve("kitty"), "cat");
+        assert_eq!(library.resolve("purrr"), "cat");
+        assert_eq!(library.resolve("adorable"), "cute");
+        assert_eq!(library.resolve("kawaii"), "cute");
+        assert_eq!(library.resolve("memes"), "meme");
 
-        assert!(library.resolve("crab").is_none());
+        assert_eq!(library.resolve("unknown_label_name"), "unknown_label_name");
     }
 
     #[test]
     fn expand_includes_aliases_and_implies_relationships() {
         let library = setup_library();
 
-        let mut result = library.expand("tiger").unwrap();
+        let mut result = library.expand("tiger");
         result.sort();
 
         let expected = vec![
@@ -216,10 +216,10 @@ mod tests {
     fn expand_does_not_include_recursive_implies_relationships() {
         let library = setup_library();
 
-        let mut result_1 = library.expand("rec_1").unwrap();
+        let mut result_1 = library.expand("rec_1");
         result_1.sort();
 
-        let mut result_2 = library.expand("rec_2").unwrap();
+        let mut result_2 = library.expand("rec_2");
         result_2.sort();
 
         let expected = vec!["rec_1", "rec_2"];
@@ -229,23 +229,10 @@ mod tests {
     }
 
     #[test]
-    fn expand_and_sort_works() {
-        let library = setup_library();
-
-        let result = library.expand_and_sort("tiger").unwrap();
-
-        let expected = vec![
-            "adorable", "cat", "cute", "kawaii", "kitty", "pet", "purrr", "tiger",
-        ];
-
-        assert_eq!(result, expected);
-    }
-
-    #[test]
     fn expand_all_works() {
         let library = setup_library();
 
-        let mut result = library.expand_all(&["cat", "puppy"]).unwrap();
+        let mut result = library.expand_all(&["cat", "puppy"]);
         result.sort();
 
         let expected = vec![
@@ -256,26 +243,15 @@ mod tests {
     }
 
     #[test]
-    fn expand_all_and_sort_works() {
-        let library = setup_library();
-        let result = library.expand_all_and_sort(&["rec_1", "puppy"]).unwrap();
-        let expected = vec![
-            "adorable", "cute", "dog", "kawaii", "pet", "puppy", "rec_1", "rec_2",
-        ];
-
-        assert_eq!(result, expected);
-    }
-
-    #[test]
     fn get_description_works() {
         let library = setup_library();
-        assert_eq!(library.get_description("puppy").unwrap(), "Dog related");
+        assert_eq!(library.get_description("puppy"), "Dog related");
     }
 
     #[test]
     fn get_aliases_works() {
         let library = setup_library();
-        let def = library.get_aliases("cat").unwrap();
+        let def = library.get_aliases("cat");
         assert_eq!(def, &["kitty", "purrr"]);
     }
 
@@ -292,10 +268,20 @@ mod tests {
 
         let labels = LabelLibrary::from_toml(toml).unwrap();
 
-        let label_name = labels.resolve("alias").unwrap();
-        let label_description = labels.get_description("label").unwrap();
+        let label_name = labels.resolve("alias");
+        let label_description = labels.get_description("label");
 
         assert_eq!(label_name, "label");
         assert_eq!(label_description, "a label");
+    }
+
+    #[test]
+    fn resolve_known_works() {
+        let library = setup_library();
+
+        assert_eq!(library.resolve_known("cat"), Some("cat"));
+        assert_eq!(library.resolve_known("purrr"), Some("cat"));
+
+        assert_eq!(library.resolve_known("unknown_label_name"), None);
     }
 }

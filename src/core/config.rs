@@ -33,8 +33,8 @@ mod tests {
         let config = Config::load("config/labels.toml").unwrap();
         let labels = config.labels;
 
-        let label_name = labels.resolve("alias").unwrap();
-        let label_description = labels.get_description("label").unwrap();
+        let label_name = labels.resolve("alias");
+        let label_description = labels.get_description("label");
 
         assert_eq!(label_name, "label");
         assert_eq!(label_description, "a label");
