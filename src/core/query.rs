@@ -1,25 +1,24 @@
-use super::document::Document;
+use super::document::{self, Document};
 
 // TODO: Optimize this.
 // TODO: Use an iterator instead of a vector.
 pub fn query<'a>(documents: &'a Vec<Document>, prompt: &str) -> Vec<&'a Document> {
+    documents.iter().filter(|d| check(d, prompt)).collect()
+}
+
+pub fn check(document: &Document, prompt: &str) -> bool {
     let searching_for: Vec<&str> = prompt.split_whitespace().collect();
 
-    documents
-        .iter()
-        .filter(|d| {
-            let mut found = true;
+    let mut matches = true;
 
-            for label in searching_for.iter() {
-                if !d.labels.iter().any(|l| l == label) {
-                    found = false;
-                    break;
-                }
-            }
+    for label in searching_for.iter() {
+        if !document.labels.iter().any(|l| l == label) {
+            matches = false;
+            break;
+        }
+    }
 
-            found
-        })
-        .collect()
+    matches
 }
 
 #[cfg(test)]
@@ -67,5 +66,21 @@ mod tests {
 
         let results = query(&documents, "l1 l2 l3");
         assert_eq!(results.len(), 0);
+    }
+
+    #[test]
+    fn check_works() {
+        let document = Document {
+            name: "name".into(),
+            labels: vec!["l1".into(), "l2".into()],
+        };
+
+        assert!(check(&document, "l1"));
+        assert!(check(&document, "l2"));
+        assert!(check(&document, "l1 l2"));
+        assert!(!check(&document, "l3"));
+        assert!(!check(&document, "l1 l3"));
+        assert!(!check(&document, "l2 l3"));
+        assert!(!check(&document, "l1 l2 l3"));
     }
 }

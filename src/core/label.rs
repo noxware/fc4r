@@ -37,6 +37,10 @@ impl LabelLibrary {
         Ok(())
     }
 
+    pub fn label_names(&self) -> Vec<&str> {
+        self.label_defs.iter().map(|l| l.name.as_str()).collect()
+    }
+
     fn get_label_def(&self, name: &str) -> Option<&LabelDef> {
         let def = self
             .label_defs
@@ -79,17 +83,17 @@ impl LabelLibrary {
         }
     }
 
-    fn expand<'a>(&'a self, name: &'a str) -> Vec<&str> {
+    pub fn expand<'a>(&'a self, name: &'a str) -> Vec<&str> {
         let mut labels = HashSet::new();
         self.expand_into(&mut labels, name);
         labels.into_iter().collect()
     }
 
-    fn expand_all<'a>(&'a self, names: &[&'a str]) -> Vec<&str> {
+    pub fn expand_all<'a, N: AsRef<str>>(&'a self, names: &'a [N]) -> Vec<&str> {
         let mut labels = HashSet::new();
 
         for name in names.iter() {
-            self.expand_into(&mut labels, name);
+            self.expand_into(&mut labels, name.as_ref());
         }
 
         labels.into_iter().collect()
@@ -126,10 +130,10 @@ impl LabelLibrary {
 }
 
 #[cfg(test)]
-mod tests {
+pub mod tests {
     use super::*;
 
-    fn setup_library() -> LabelLibrary {
+    pub fn setup_library() -> LabelLibrary {
         let labels = vec![
             LabelDef {
                 name: "cute".to_string(),
@@ -283,5 +287,19 @@ mod tests {
         assert_eq!(library.resolve_known("purrr"), Some("cat"));
 
         assert_eq!(library.resolve_known("unknown_label_name"), None);
+    }
+
+    #[test]
+    fn label_names_works() {
+        let library = setup_library();
+
+        let mut result = library.label_names();
+        result.sort();
+
+        let expected = vec![
+            "cat", "cute", "dog", "meme", "pet", "rec_1", "rec_2", "tiger",
+        ];
+
+        assert_eq!(result, expected);
     }
 }
