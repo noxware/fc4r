@@ -1,4 +1,4 @@
-use super::document::{self, Document};
+use super::document::Document;
 
 // TODO: Optimize this.
 // TODO: Use an iterator instead of a vector.

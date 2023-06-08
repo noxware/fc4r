@@ -1,5 +1,5 @@
 use super::label::LabelLibrary;
-use std::{error::Error, path::Path};
+use std::path::Path;
 
 const FILENAME_LABELS_DELIMITER: &str = " fn ";
 

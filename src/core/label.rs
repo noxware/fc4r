@@ -33,7 +33,7 @@ impl LabelLibrary {
     /// Validates that the label definitions are valid.
     ///
     /// This is a placeholder for now.
-    fn validate(defs: &Vec<LabelDef>) -> Result<(), Box<dyn Error>> {
+    fn validate(_defs: &Vec<LabelDef>) -> Result<(), Box<dyn Error>> {
         Ok(())
     }
 
