@@ -15,7 +15,10 @@ pub struct Config {
 }
 
 #[derive(Deserialize)]
-pub struct Settings {}
+pub struct Settings {
+    // TODO: Use a default if missing and use that default in fcinit.
+    pub link_dir: String,
+}
 
 impl Config {
     // TODO: Remove file system dependency from core.
@@ -46,10 +49,14 @@ mod tests {
     fn load_works() {
         let config = Config::load("test_dir/fileclass").unwrap();
         let labels = config.labels;
+        let settings = config.settings;
 
         let label_name = labels.resolve("alias");
         let label_description = labels.get_description("label");
         assert_eq!(label_name, "label");
         assert_eq!(label_description, "a label");
+
+        let link_dir = settings.link_dir;
+        assert_eq!(link_dir, "test_dir/fileclass/temp/links");
     }
 }
