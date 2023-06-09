@@ -1,8 +1,8 @@
-use std::fs::File;
-use std::io::Read;
-
-use crate::core::label::LabelLibrary;
 use std::error::Error;
+use std::fs;
+use std::path::PathBuf;
+
+use super::label::LabelLibrary;
 
 pub struct Config {
     pub labels: LabelLibrary,
@@ -10,11 +10,11 @@ pub struct Config {
 
 impl Config {
     // TODO: Remove file system dependency from core.
-    pub fn load(path: &str) -> Result<Self, Box<dyn Error>> {
-        let mut labels_file = File::open(path)?;
-        let mut labels_content = String::new();
-        labels_file.read_to_string(&mut labels_content)?;
+    pub fn load(dir_path: &str) -> Result<Self, Box<dyn Error>> {
+        let mut labels_path = PathBuf::from(dir_path);
+        labels_path.push("labels.toml");
 
+        let labels_content = fs::read_to_string(labels_path)?;
         let labels = LabelLibrary::from_toml(&labels_content)?;
         let config = Config { labels };
 
@@ -28,7 +28,7 @@ mod tests {
 
     #[test]
     fn load_works() {
-        let config = Config::load("config/labels.toml").unwrap();
+        let config = Config::load("test_dir/fileclass").unwrap();
         let labels = config.labels;
 
         let label_name = labels.resolve("alias");
