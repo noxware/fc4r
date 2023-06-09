@@ -4,7 +4,7 @@ use std::io;
 
 // TODO: Handle errors here.
 fn main() {
-    let config = Config::load("fileclass/labels.toml").expect("Can't load config");
+    let config = Config::std_load().expect("Can't load config");
     let args: Vec<String> = env::args().collect();
 
     if args.len() < 2 {

@@ -5,6 +5,8 @@ use std::path::Path;
 
 use super::label::LabelLibrary;
 
+pub const STD_CONFIG_DIR: &str = "fileclass";
+
 pub struct Config {
     pub labels: LabelLibrary,
     pub settings: Settings,
@@ -29,6 +31,10 @@ impl Config {
         let config = Config { labels, settings };
 
         Ok(config)
+    }
+
+    pub fn std_load() -> Result<Self, Box<dyn Error>> {
+        Config::load(STD_CONFIG_DIR)
     }
 }
 
