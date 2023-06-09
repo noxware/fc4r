@@ -1,28 +1,28 @@
-// ChatGPT generated code.
+// ChatGPT ported code from old Deno version, with small modifications.
 
 // TODO: Improve.
+// TODO: Support dirs.
 
-use std::env;
 use std::fs;
 use std::path::Path;
 use std::process;
 
-const DIR_NAME: &str = "hXZGVgb4_fileclass_links";
+use fileclass::core::config::Config;
 
 fn main() {
-    // Get the system temporary directory
-    let temp_dir = env::temp_dir();
+    let config = Config::std_load().unwrap();
+    let link_dir = config.settings.link_dir;
 
-    // Create the target folder within the temporary directory
-    let target_folder = temp_dir.join(DIR_NAME);
+    // Get the target folder path
+    let target_folder = Path::new(&link_dir);
 
     // Remove the target folder if it already exists
     if target_folder.exists() {
-        fs::remove_dir_all(&target_folder).unwrap();
+        fs::remove_dir_all(target_folder).unwrap();
     }
 
     // Create the target folder
-    fs::create_dir(&target_folder).unwrap();
+    fs::create_dir_all(target_folder).unwrap();
 
     // Output the target folder path
     println!("{}", target_folder.display());
