@@ -20,6 +20,19 @@ struct RawLabelDef {
     description: String,
 }
 
+#[allow(dead_code)]
+fn expand_valued_labels() {
+    panic!("Not implemented");
+}
+
+fn add_meta_labels(labels: &mut Vec<&str>) {
+    if labels.is_empty() {
+        labels.push("system:unlabeled");
+    } else {
+        labels.push("system:labeled");
+    }
+}
+
 pub struct LabelLibrary {
     label_defs: Vec<LabelDef>,
 }
@@ -100,7 +113,10 @@ impl LabelLibrary {
             self.expand_into(&mut labels, name.as_ref());
         }
 
-        labels.into_iter().collect()
+        let mut labels = labels.into_iter().collect();
+        add_meta_labels(&mut labels);
+
+        labels
     }
 
     pub fn get_description(&self, name: &str) -> &str {
@@ -244,8 +260,30 @@ pub mod tests {
         result.sort();
 
         let expected = vec![
-            "adorable", "cat", "cute", "dog", "kawaii", "kitty", "pet", "puppy", "purrr",
+            "adorable",
+            "cat",
+            "cute",
+            "dog",
+            "kawaii",
+            "kitty",
+            "pet",
+            "puppy",
+            "purrr",
+            "system:labeled",
         ];
+
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn expand_all_works_with_empty_input() {
+        let library = setup_library();
+
+        let names: Vec<&str> = vec![];
+        let mut result = library.expand_all(&names);
+        result.sort();
+
+        let expected = vec!["system:unlabeled"];
 
         assert_eq!(result, expected);
     }
