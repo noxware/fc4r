@@ -10,7 +10,7 @@ implies = ["implied"]
 
 [implied]"#;
 
-const SETTINGS_CONTENT: &str = r#""#;
+const SETTINGS_CONTENT: &str = r#"link_dir="fileclass/temp/links""#;
 
 fn main() {
     let folder_path = Path::new(STD_CONFIG_DIR);
