@@ -62,6 +62,10 @@ impl LabelLibrary {
         }
     }
 
+    pub fn is_known(&self, name: &str) -> bool {
+        self.resolve_known(name).is_some()
+    }
+
     fn expand_into<'a>(&'a self, labels: &mut HashSet<&'a str>, name: &'a str) -> () {
         match self.get_label_def(name) {
             Some(def) => {
@@ -301,5 +305,15 @@ pub mod tests {
         ];
 
         assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn is_known_works() {
+        let library = setup_library();
+
+        assert_eq!(library.is_known("cat"), true);
+        assert_eq!(library.is_known("purrr"), true);
+
+        assert_eq!(library.is_known("unknown_label_name"), false);
     }
 }
