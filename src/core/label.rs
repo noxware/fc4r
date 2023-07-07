@@ -2,6 +2,68 @@ use serde::Deserialize;
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::error::Error;
+use std::iter::FromIterator;
+use std::iter::IntoIterator;
+
+#[derive(Clone)]
+pub struct LabelSet(HashSet<String>);
+
+impl LabelSet {
+    pub fn empty() -> Self {
+        Self(HashSet::new())
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+
+    pub fn inner_set(&self) -> &HashSet<String> {
+        &self.0
+    }
+
+    pub fn expand_with(&mut self, library: &LabelLibrary) -> () {
+        let input_labels = &self.0;
+        let mut output_labels = HashSet::new();
+
+        for l in input_labels {
+            library.expand_into(&mut output_labels, &l);
+        }
+
+        add_meta_labels(&mut output_labels);
+
+        self.0 = output_labels;
+    }
+
+    pub fn iter(&self) -> std::collections::hash_set::Iter<String> {
+        self.0.iter()
+    }
+}
+
+impl IntoIterator for LabelSet {
+    type Item = String;
+    type IntoIter = std::collections::hash_set::IntoIter<String>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
+    }
+}
+
+// https://doc.rust-lang.org/std/iter/index.html#iterating-by-reference
+impl<'a> IntoIterator for &'a LabelSet {
+    type Item = &'a String;
+    type IntoIter = std::collections::hash_set::Iter<'a, String>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.iter()
+    }
+}
+
+impl FromIterator<String> for LabelSet {
+    fn from_iter<I: IntoIterator<Item = String>>(iter: I) -> Self {
+        let set: HashSet<String> = iter.into_iter().collect();
+        LabelSet(set)
+    }
+}
 
 struct LabelDef {
     name: String,
@@ -25,11 +87,11 @@ fn expand_valued_labels() {
     panic!("Not implemented");
 }
 
-fn add_meta_labels(labels: &mut Vec<&str>) {
+fn add_meta_labels(labels: &mut HashSet<String>) {
     if labels.is_empty() {
-        labels.push("system:unlabeled");
+        labels.insert("system:unlabeled".to_string());
     } else {
-        labels.push("system:labeled");
+        labels.insert("system:labeled".to_string());
     }
 }
 
@@ -79,13 +141,15 @@ impl LabelLibrary {
         self.resolve_known(name).is_some()
     }
 
-    fn expand_into<'a>(&'a self, labels: &mut HashSet<&'a str>, name: &'a str) -> () {
+    // TODO: Consider moving into LabelSet using `get_label_def` from there.
+    // Also consider adjusting the logic since some of this may no longer be necessary.
+    fn expand_into(&self, labels: &mut HashSet<String>, name: &str) -> () {
         match self.get_label_def(name) {
             Some(def) => {
-                labels.insert(&def.name);
+                labels.insert(def.name.clone());
 
                 for alias in def.aliases.iter() {
-                    labels.insert(alias);
+                    labels.insert(alias.clone());
                 }
 
                 for implied in def.implies.iter() {
@@ -95,28 +159,9 @@ impl LabelLibrary {
                 }
             }
             None => {
-                labels.insert(name);
+                labels.insert(name.to_string());
             }
         }
-    }
-
-    pub fn expand<'a>(&'a self, name: &'a str) -> Vec<&str> {
-        let mut labels = HashSet::new();
-        self.expand_into(&mut labels, name);
-        labels.into_iter().collect()
-    }
-
-    pub fn expand_all<'a, N: AsRef<str>>(&'a self, names: &'a [N]) -> Vec<&str> {
-        let mut labels = HashSet::new();
-
-        for name in names.iter() {
-            self.expand_into(&mut labels, name.as_ref());
-        }
-
-        let mut labels = labels.into_iter().collect();
-        add_meta_labels(&mut labels);
-
-        labels
     }
 
     pub fn get_description(&self, name: &str) -> &str {
@@ -223,40 +268,53 @@ pub mod tests {
     }
 
     #[test]
-    fn expand_includes_aliases_and_implies_relationships() {
+    fn expand_with_includes_aliases_and_implies_relationships() {
         let library = setup_library();
 
-        let mut result = library.expand("tiger");
+        let mut labels = LabelSet::from_iter(vec!["tiger".to_string()]);
+        labels.expand_with(&library);
+
+        let mut result: Vec<String> = labels.into_iter().collect();
         result.sort();
 
         let expected = vec![
-            "adorable", "cat", "cute", "kawaii", "kitty", "pet", "purrr", "tiger",
+            "adorable",
+            "cat",
+            "cute",
+            "kawaii",
+            "kitty",
+            "pet",
+            "purrr",
+            "system:labeled",
+            "tiger",
         ];
 
         assert_eq!(result, expected);
     }
 
     #[test]
-    fn expand_does_not_include_recursive_implies_relationships() {
+    fn expand_with_works_with_recursive_implies_relationships() {
         let library = setup_library();
 
-        let mut result_1 = library.expand("rec_1");
-        result_1.sort();
+        let mut labels = LabelSet::from_iter(vec!["rec_1".to_string()]);
+        labels.expand_with(&library);
 
-        let mut result_2 = library.expand("rec_2");
-        result_2.sort();
+        let mut result: Vec<String> = labels.into_iter().collect();
+        result.sort();
 
-        let expected = vec!["rec_1", "rec_2"];
+        let expected = vec!["rec_1", "rec_2", "system:labeled"];
 
-        assert_eq!(result_1, expected);
-        assert_eq!(result_2, expected);
+        assert_eq!(result, expected);
     }
 
     #[test]
-    fn expand_all_works() {
+    fn expand_with_works() {
         let library = setup_library();
 
-        let mut result = library.expand_all(&["cat", "puppy"]);
+        let mut labels = LabelSet::from_iter(vec!["cat".to_string(), "puppy".to_string()]);
+        labels.expand_with(&library);
+
+        let mut result: Vec<String> = labels.into_iter().collect();
         result.sort();
 
         let expected = vec![
@@ -276,11 +334,13 @@ pub mod tests {
     }
 
     #[test]
-    fn expand_all_works_with_empty_input() {
+    fn expand_with_works_with_empty_input() {
         let library = setup_library();
 
-        let names: Vec<&str> = vec![];
-        let mut result = library.expand_all(&names);
+        let mut labels = LabelSet::from_iter(vec![]);
+        labels.expand_with(&library);
+
+        let mut result: Vec<String> = labels.into_iter().collect();
         result.sort();
 
         let expected = vec!["system:unlabeled"];

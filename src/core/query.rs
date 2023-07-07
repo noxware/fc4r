@@ -24,25 +24,26 @@ pub fn check(document: &Document, prompt: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::core::label::LabelSet;
 
     #[test]
     fn query_works() {
         let documents = vec![
             Document {
                 name: "name1".into(),
-                labels: vec!["l1".into(), "l2".into()],
+                labels: LabelSet::from_iter(vec!["l1".into(), "l2".into()]),
             },
             Document {
                 name: "name2".into(),
-                labels: vec!["l1".into()],
+                labels: LabelSet::from_iter(vec!["l1".into()]),
             },
             Document {
                 name: "name3".into(),
-                labels: vec!["l2".into()],
+                labels: LabelSet::from_iter(vec!["l2".into()]),
             },
             Document {
                 name: "name4".into(),
-                labels: vec!["l3".into()],
+                labels: LabelSet::from_iter(vec!["l3".into()]),
             },
         ];
 
@@ -72,7 +73,7 @@ mod tests {
     fn check_works() {
         let document = Document {
             name: "name".into(),
-            labels: vec!["l1".into(), "l2".into()],
+            labels: LabelSet::from_iter(vec!["l1".into(), "l2".into()]),
         };
 
         assert!(check(&document, "l1"));

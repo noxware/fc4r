@@ -1,10 +1,10 @@
-use super::label::LabelLibrary;
+use super::label::{LabelLibrary, LabelSet};
 use std::path::Path;
 
 const FILENAME_LABELS_DELIMITER: &str = " fn ";
 
 pub struct Document {
-    pub labels: Vec<String>,
+    pub labels: LabelSet,
     pub name: String,
 }
 
@@ -26,19 +26,14 @@ impl Document {
                 }
             }
             None => Self {
-                labels: Vec::new(),
+                labels: LabelSet::empty(),
                 name: filename.to_string(),
             },
         }
     }
 
     pub fn expand(&mut self, library: &LabelLibrary) -> () {
-        // TODO: Consider Cow or other stuff to avoid unnecessary allocations.
-        self.labels = library
-            .expand_all(self.labels.as_slice())
-            .iter()
-            .map(|s| s.to_string())
-            .collect();
+        self.labels.expand_with(library);
     }
 }
 
@@ -51,8 +46,11 @@ mod tests {
     #[test]
     fn from_filename_works() {
         let doc = Document::from_filename("path/to/   l1   l2  fn   name.ext  ");
+        let mut labels: Vec<String> = doc.labels.into_iter().collect();
+        labels.sort();
+
         assert_eq!(doc.name, "name.ext");
-        assert_eq!(doc.labels, ["l1", "l2"]);
+        assert_eq!(labels, ["l1", "l2"]);
     }
 
     #[test]
@@ -72,8 +70,11 @@ mod tests {
     #[test]
     fn from_filename_works_with_empty_name() {
         let doc = Document::from_filename("path/to/   l1   l2  fn   ");
+        let mut labels: Vec<String> = doc.labels.into_iter().collect();
+        labels.sort();
+
         assert_eq!(doc.name, "");
-        assert_eq!(doc.labels, ["l1", "l2"]);
+        assert_eq!(labels, ["l1", "l2"]);
     }
 
     #[test]
@@ -86,17 +87,23 @@ mod tests {
     #[test]
     fn expand_works() {
         let library = setup_library();
-        let labels = vec!["cat".into(), "kitty".into(), "puppy".into(), "rec_1".into()];
+        let mut labels = LabelSet::from_iter(vec![
+            "cat".into(),
+            "kitty".into(),
+            "puppy".into(),
+            "rec_1".into(),
+        ]);
+
         let mut doc = Document {
             name: "name.ext".into(),
             labels: labels.clone(),
         };
 
         doc.expand(&library);
+        labels.expand_with(&library);
 
-        // For some reason sorting is not stable. Not important.
-        let mut expected = library.expand_all(labels.as_slice());
-        let mut result = doc.labels;
+        let mut expected = labels.into_iter().collect::<Vec<String>>();
+        let mut result = doc.labels.into_iter().collect::<Vec<String>>();
         expected.sort();
         result.sort();
 
