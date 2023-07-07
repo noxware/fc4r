@@ -5,7 +5,7 @@ use std::error::Error;
 use std::iter::FromIterator;
 use std::iter::IntoIterator;
 
-#[derive(Clone)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct LabelSet(HashSet<String>);
 
 impl LabelSet {
@@ -62,6 +62,19 @@ impl FromIterator<String> for LabelSet {
     fn from_iter<I: IntoIterator<Item = String>>(iter: I) -> Self {
         let set: HashSet<String> = iter.into_iter().collect();
         LabelSet(set)
+    }
+}
+
+impl<'a> FromIterator<&'a str> for LabelSet {
+    fn from_iter<I: IntoIterator<Item = &'a str>>(iter: I) -> Self {
+        let set: HashSet<String> = iter.into_iter().map(|s| s.to_string()).collect();
+        LabelSet(set)
+    }
+}
+
+impl<const N: usize> From<[&str; N]> for LabelSet {
+    fn from(array: [&str; N]) -> Self {
+        Self::from_iter(array)
     }
 }
 
@@ -271,13 +284,10 @@ pub mod tests {
     fn expand_with_includes_aliases_and_implies_relationships() {
         let library = setup_library();
 
-        let mut labels = LabelSet::from_iter(vec!["tiger".to_string()]);
-        labels.expand_with(&library);
+        let mut result = LabelSet::from(["tiger"]);
+        result.expand_with(&library);
 
-        let mut result: Vec<String> = labels.into_iter().collect();
-        result.sort();
-
-        let expected = vec![
+        let expected = LabelSet::from([
             "adorable",
             "cat",
             "cute",
@@ -287,7 +297,7 @@ pub mod tests {
             "purrr",
             "system:labeled",
             "tiger",
-        ];
+        ]);
 
         assert_eq!(result, expected);
     }
@@ -296,13 +306,10 @@ pub mod tests {
     fn expand_with_works_with_recursive_implies_relationships() {
         let library = setup_library();
 
-        let mut labels = LabelSet::from_iter(vec!["rec_1".to_string()]);
-        labels.expand_with(&library);
+        let mut result = LabelSet::from(["rec_1"]);
+        result.expand_with(&library);
 
-        let mut result: Vec<String> = labels.into_iter().collect();
-        result.sort();
-
-        let expected = vec!["rec_1", "rec_2", "system:labeled"];
+        let expected = LabelSet::from(["rec_1", "rec_2", "system:labeled"]);
 
         assert_eq!(result, expected);
     }
@@ -311,13 +318,10 @@ pub mod tests {
     fn expand_with_works() {
         let library = setup_library();
 
-        let mut labels = LabelSet::from_iter(vec!["cat".to_string(), "puppy".to_string()]);
-        labels.expand_with(&library);
+        let mut result = LabelSet::from(["cat", "puppy"]);
+        result.expand_with(&library);
 
-        let mut result: Vec<String> = labels.into_iter().collect();
-        result.sort();
-
-        let expected = vec![
+        let expected = LabelSet::from([
             "adorable",
             "cat",
             "cute",
@@ -328,7 +332,7 @@ pub mod tests {
             "puppy",
             "purrr",
             "system:labeled",
-        ];
+        ]);
 
         assert_eq!(result, expected);
     }
@@ -337,13 +341,10 @@ pub mod tests {
     fn expand_with_works_with_empty_input() {
         let library = setup_library();
 
-        let mut labels = LabelSet::from_iter(vec![]);
-        labels.expand_with(&library);
+        let mut result = LabelSet::from([]);
+        result.expand_with(&library);
 
-        let mut result: Vec<String> = labels.into_iter().collect();
-        result.sort();
-
-        let expected = vec!["system:unlabeled"];
+        let expected = LabelSet::from(["system:unlabeled"]);
 
         assert_eq!(result, expected);
     }

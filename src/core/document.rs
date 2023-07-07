@@ -46,11 +46,9 @@ mod tests {
     #[test]
     fn from_filename_works() {
         let doc = Document::from_filename("path/to/   l1   l2  fn   name.ext  ");
-        let mut labels: Vec<String> = doc.labels.into_iter().collect();
-        labels.sort();
 
         assert_eq!(doc.name, "name.ext");
-        assert_eq!(labels, ["l1", "l2"]);
+        assert_eq!(doc.labels, LabelSet::from(["l1", "l2"]));
     }
 
     #[test]
@@ -70,11 +68,9 @@ mod tests {
     #[test]
     fn from_filename_works_with_empty_name() {
         let doc = Document::from_filename("path/to/   l1   l2  fn   ");
-        let mut labels: Vec<String> = doc.labels.into_iter().collect();
-        labels.sort();
 
         assert_eq!(doc.name, "");
-        assert_eq!(labels, ["l1", "l2"]);
+        assert_eq!(doc.labels, LabelSet::from(["l1", "l2"]));
     }
 
     #[test]
@@ -87,12 +83,7 @@ mod tests {
     #[test]
     fn expand_works() {
         let library = setup_library();
-        let mut labels = LabelSet::from_iter(vec![
-            "cat".into(),
-            "kitty".into(),
-            "puppy".into(),
-            "rec_1".into(),
-        ]);
+        let mut labels = LabelSet::from(["cat", "kitty", "puppy", "rec_1"]);
 
         let mut doc = Document {
             name: "name.ext".into(),

@@ -31,19 +31,19 @@ mod tests {
         let documents = vec![
             Document {
                 name: "name1".into(),
-                labels: LabelSet::from_iter(vec!["l1".into(), "l2".into()]),
+                labels: LabelSet::from(["l1", "l2"]),
             },
             Document {
                 name: "name2".into(),
-                labels: LabelSet::from_iter(vec!["l1".into()]),
+                labels: LabelSet::from(["l1"]),
             },
             Document {
                 name: "name3".into(),
-                labels: LabelSet::from_iter(vec!["l2".into()]),
+                labels: LabelSet::from(["l2"]),
             },
             Document {
                 name: "name4".into(),
-                labels: LabelSet::from_iter(vec!["l3".into()]),
+                labels: LabelSet::from(["l3"]),
             },
         ];
 
@@ -73,7 +73,7 @@ mod tests {
     fn check_works() {
         let document = Document {
             name: "name".into(),
-            labels: LabelSet::from_iter(vec!["l1".into(), "l2".into()]),
+            labels: LabelSet::from(["l1", "l2"]),
         };
 
         assert!(check(&document, "l1"));
