@@ -17,6 +17,7 @@ fn main() {
 
     let prompt = &args[1..].join(" ");
 
+    // TODO: Move into `aux` as function `read_stdin_documents` or `stdin_filenames_into_documents`.
     let result = io::stdin()
         .lines()
         .map(|l| l.expect("Can't read line from stdio"))
