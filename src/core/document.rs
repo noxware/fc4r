@@ -1,9 +1,11 @@
-use super::label::{LabelLibrary, LabelSet};
+use super::label::LabelSet;
 use std::path::Path;
 
 const FILENAME_LABELS_DELIMITER: &str = " fn ";
 
 pub struct Document {
+    // Provisory name matching the `from_filename` function.
+    pub filename: String,
     pub labels: LabelSet,
     pub name: String,
 }
@@ -22,25 +24,22 @@ impl Document {
                 let labels = labels.split_whitespace().map(|s| s.to_string()).collect();
                 Self {
                     labels,
+                    // TODO: Shall I trim the filename? See tests below.
+                    filename: filename.to_string(),
                     name: name.trim().to_string(),
                 }
             }
             None => Self {
                 labels: LabelSet::empty(),
+                filename: filename.to_string(),
                 name: filename.to_string(),
             },
         }
-    }
-
-    pub fn expand(&mut self, library: &LabelLibrary) -> () {
-        self.labels.expand_with(library);
     }
 }
 
 #[cfg(test)]
 mod tests {
-    // TODO: Place this shared util elsewhere?
-    use super::super::label::tests::setup_library;
     use super::*;
 
     #[test]
@@ -78,26 +77,5 @@ mod tests {
         let doc = Document::from_filename("path/to/   fn   ");
         assert_eq!(doc.name, "");
         assert!(doc.labels.is_empty());
-    }
-
-    #[test]
-    fn expand_works() {
-        let library = setup_library();
-        let mut labels = LabelSet::from(["cat", "kitty", "puppy", "rec_1"]);
-
-        let mut doc = Document {
-            name: "name.ext".into(),
-            labels: labels.clone(),
-        };
-
-        doc.expand(&library);
-        labels.expand_with(&library);
-
-        let mut expected = labels.into_iter().collect::<Vec<String>>();
-        let mut result = doc.labels.into_iter().collect::<Vec<String>>();
-        expected.sort();
-        result.sort();
-
-        assert_eq!(result, expected);
     }
 }

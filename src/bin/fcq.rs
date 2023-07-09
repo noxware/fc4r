@@ -1,4 +1,8 @@
-use fileclass::core::{config::Config, document::Document, query};
+use fileclass::core::{
+    config::Config,
+    document::Document,
+    query::{check, CheckParams},
+};
 use std::env;
 use std::io;
 
@@ -13,15 +17,19 @@ fn main() {
 
     let prompt = &args[1..].join(" ");
 
-    io::stdin()
+    let result = io::stdin()
         .lines()
         .map(|l| l.expect("Can't read line from stdio"))
-        .for_each(|l| {
-            let mut document = Document::from_filename(&l);
-            document.expand(&config.labels);
+        .map(|l| Document::from_filename(&l))
+        .filter(|d| {
+            let params = CheckParams {
+                prompt: &prompt,
+                document: &d,
+                library: &config.labels,
+            };
 
-            if query::check(&document, prompt) {
-                println!("{}", l);
-            }
+            check(&params)
         });
+
+    result.for_each(|d| println!("{}", d.filename));
 }

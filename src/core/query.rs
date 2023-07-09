@@ -1,18 +1,26 @@
-use super::document::Document;
+use super::{document::Document, label::LabelLibrary};
 
-// TODO: Optimize this.
-// TODO: Use an iterator instead of a vector.
-pub fn query<'a>(documents: &'a Vec<Document>, prompt: &str) -> Vec<&'a Document> {
-    documents.iter().filter(|d| check(d, prompt)).collect()
+pub struct CheckParams<'a> {
+    pub prompt: &'a str,
+    pub document: &'a Document,
+    pub library: &'a LabelLibrary,
 }
 
-pub fn check(document: &Document, prompt: &str) -> bool {
+pub fn check(params: &CheckParams) -> bool {
+    let CheckParams {
+        prompt,
+        document,
+        library,
+    } = params;
     let searching_for: Vec<&str> = prompt.split_whitespace().collect();
 
     let mut matches = true;
 
     for label in searching_for.iter() {
-        if !document.labels.iter().any(|l| l == label) {
+        let mut extended_labels = document.labels.clone();
+        extended_labels.expand_with(library);
+
+        if !extended_labels.iter().any(|l| l == label) {
             matches = false;
             break;
         }
@@ -27,61 +35,39 @@ mod tests {
     use crate::core::label::LabelSet;
 
     #[test]
-    fn query_works() {
-        let documents = vec![
-            Document {
-                name: "name1".into(),
-                labels: LabelSet::from(["l1", "l2"]),
-            },
-            Document {
-                name: "name2".into(),
-                labels: LabelSet::from(["l1"]),
-            },
-            Document {
-                name: "name3".into(),
-                labels: LabelSet::from(["l2"]),
-            },
-            Document {
-                name: "name4".into(),
-                labels: LabelSet::from(["l3"]),
-            },
-        ];
-
-        let results = query(&documents, "l1 l2");
-        assert_eq!(results.len(), 1);
-        assert_eq!(results[0].name, "name1");
-
-        let results = query(&documents, "l1");
-        assert_eq!(results.len(), 2);
-        assert_eq!(results[0].name, "name1");
-        assert_eq!(results[1].name, "name2");
-
-        let results = query(&documents, "l2");
-        assert_eq!(results.len(), 2);
-        assert_eq!(results[0].name, "name1");
-        assert_eq!(results[1].name, "name3");
-
-        let results = query(&documents, "l3");
-        assert_eq!(results.len(), 1);
-        assert_eq!(results[0].name, "name4");
-
-        let results = query(&documents, "l1 l2 l3");
-        assert_eq!(results.len(), 0);
-    }
-
-    #[test]
     fn check_works() {
         let document = Document {
+            filename: "".into(),
             name: "name".into(),
             labels: LabelSet::from(["l1", "l2"]),
         };
 
-        assert!(check(&document, "l1"));
-        assert!(check(&document, "l2"));
-        assert!(check(&document, "l1 l2"));
-        assert!(!check(&document, "l3"));
-        assert!(!check(&document, "l1 l3"));
-        assert!(!check(&document, "l2 l3"));
-        assert!(!check(&document, "l1 l2 l3"));
+        let mut params = CheckParams {
+            prompt: "",
+            document: &document,
+            // TODO: Test some expansion.
+            library: &LabelLibrary::empty(),
+        };
+
+        params.prompt = "l1";
+        assert!(check(&params));
+
+        params.prompt = "l2";
+        assert!(check(&params));
+
+        params.prompt = "l1 l2";
+        assert!(check(&params));
+
+        params.prompt = "l3";
+        assert!(!check(&params));
+
+        params.prompt = "l1 l3";
+        assert!(!check(&params));
+
+        params.prompt = "l2 l3";
+        assert!(!check(&params));
+
+        params.prompt = "l1 l2 l3";
+        assert!(!check(&params));
     }
 }

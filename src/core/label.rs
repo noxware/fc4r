@@ -118,6 +118,10 @@ impl LabelLibrary {
         Ok(Self { label_defs: defs })
     }
 
+    pub fn empty() -> Self {
+        Self::build(Vec::new()).unwrap()
+    }
+
     /// Validates that the label definitions are valid.
     ///
     /// This is a placeholder for now.
