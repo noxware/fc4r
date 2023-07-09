@@ -32,5 +32,5 @@ fn main() {
             check(&params)
         });
 
-    result.for_each(|d| println!("{}", d.filename));
+    result.for_each(|d| println!("{}", d.path));
 }

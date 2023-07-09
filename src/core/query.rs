@@ -63,7 +63,7 @@ mod tests {
     #[test]
     fn check_works() {
         let document = Document {
-            filename: "".into(),
+            path: "".into(),
             name: "name".into(),
             labels: LabelSet::from(["l1", "l2"]),
         };

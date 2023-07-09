@@ -5,7 +5,7 @@ const FILENAME_LABELS_DELIMITER: &str = " fn ";
 
 pub struct Document {
     // Provisory name matching the `from_filename` function.
-    pub filename: String,
+    pub path: String,
     pub labels: LabelSet,
     pub name: String,
 }
@@ -24,14 +24,14 @@ impl Document {
                 let labels = labels.split_whitespace().map(|s| s.to_string()).collect();
                 Self {
                     labels,
-                    // TODO: Shall I trim the filename? See tests below.
-                    filename: filename.to_string(),
+                    // Shall I use lossy here?
+                    path: path.to_str().unwrap().to_string(),
                     name: name.trim().to_string(),
                 }
             }
             None => Self {
                 labels: LabelSet::empty(),
-                filename: filename.to_string(),
+                path: path.to_str().unwrap().to_string(),
                 name: filename.to_string(),
             },
         }
