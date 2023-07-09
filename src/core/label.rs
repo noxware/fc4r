@@ -29,8 +29,6 @@ impl LabelSet {
             library.expand_into(&mut output_labels, &l);
         }
 
-        add_meta_labels(&mut output_labels);
-
         self.0 = output_labels;
     }
 
@@ -93,19 +91,6 @@ struct RawLabelDef {
     implies: Vec<String>,
     #[serde(default)]
     description: String,
-}
-
-#[allow(dead_code)]
-fn expand_valued_labels() {
-    panic!("Not implemented");
-}
-
-fn add_meta_labels(labels: &mut HashSet<String>) {
-    if labels.is_empty() {
-        labels.insert("system:unlabeled".to_string());
-    } else {
-        labels.insert("system:labeled".to_string());
-    }
 }
 
 pub struct LabelLibrary {
@@ -292,15 +277,7 @@ pub mod tests {
         result.expand_with(&library);
 
         let expected = LabelSet::from([
-            "adorable",
-            "cat",
-            "cute",
-            "kawaii",
-            "kitty",
-            "pet",
-            "purrr",
-            "system:labeled",
-            "tiger",
+            "adorable", "cat", "cute", "kawaii", "kitty", "pet", "purrr", "tiger",
         ]);
 
         assert_eq!(result, expected);
@@ -313,7 +290,7 @@ pub mod tests {
         let mut result = LabelSet::from(["rec_1"]);
         result.expand_with(&library);
 
-        let expected = LabelSet::from(["rec_1", "rec_2", "system:labeled"]);
+        let expected = LabelSet::from(["rec_1", "rec_2"]);
 
         assert_eq!(result, expected);
     }
@@ -326,16 +303,7 @@ pub mod tests {
         result.expand_with(&library);
 
         let expected = LabelSet::from([
-            "adorable",
-            "cat",
-            "cute",
-            "dog",
-            "kawaii",
-            "kitty",
-            "pet",
-            "puppy",
-            "purrr",
-            "system:labeled",
+            "adorable", "cat", "cute", "dog", "kawaii", "kitty", "pet", "puppy", "purrr",
         ]);
 
         assert_eq!(result, expected);
@@ -348,7 +316,7 @@ pub mod tests {
         let mut result = LabelSet::from([]);
         result.expand_with(&library);
 
-        let expected = LabelSet::from(["system:unlabeled"]);
+        let expected = LabelSet::from([]);
 
         assert_eq!(result, expected);
     }
