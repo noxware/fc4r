@@ -52,9 +52,20 @@ fn main() {
                 index += 1;
             }
 
+            // Temporal safe guard for directories and other entities.
+            // TODO: Support directories at least.
+            if !Path::new(&file_path).is_file() {
+                eprintln!(
+                    "Warning: \"{}\" is not a regular file, ignoring.",
+                    file_path
+                );
+
+                continue;
+            }
+
             // Hard link
             if let Err(err) = fs::hard_link(&file_path, &link_path) {
-                eprintln!("Failed to create hard link: {}", err);
+                eprintln!("Failed to create hard link for \"{}\": {}", file_path, err);
                 process::exit(1);
             }
         }
