@@ -55,3 +55,8 @@ fcwalk | fcq explicit:x
 ```
 fcwalk | fcq x not:explicit:x
 ```
+
+## License
+
+All code in this repo is MIT licensed unless said otherwise. See the license
+file for details.
