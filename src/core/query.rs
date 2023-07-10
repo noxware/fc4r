@@ -34,7 +34,6 @@ pub fn check(params: &CheckParams) -> bool {
     matches
 }
 
-// TODO: Test pseudo labels.
 fn check_table(document: &Document, labels: &LabelSet, current_label: &str) -> bool {
     match current_label.split_once(PSEUDO_DELIMITER) {
         Some((prefix, suffix)) => check_pseudo(document, labels, prefix, suffix),
@@ -84,7 +83,6 @@ mod tests {
         let mut params = CheckParams {
             prompt: "",
             document: &document,
-            // TODO: Test some expansion.
             library: &library,
         };
 
