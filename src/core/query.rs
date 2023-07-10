@@ -47,6 +47,7 @@ fn check_pseudo(labels: &LabelSet, prefix: &str, suffix: &str) -> bool {
     match (prefix, suffix) {
         ("system", "unlabeled") => labels.is_empty(),
         ("system", "labeled") => !labels.is_empty(),
+        ("not", _) => !check_table(labels, suffix),
         _ => false,
     }
 }
@@ -95,5 +96,23 @@ mod tests {
 
         params.prompt = "l1 l2 l3";
         assert!(!check(&params));
+
+        params.prompt = "system:labeled";
+        assert!(check(&params));
+
+        params.prompt = "system:unlabeled";
+        assert!(!check(&params));
+
+        params.prompt = "not:system:labeled";
+        assert!(!check(&params));
+
+        params.prompt = "not:system:unlabeled";
+        assert!(check(&params));
+
+        params.prompt = "not:l1";
+        assert!(!check(&params));
+
+        params.prompt = "not:l3";
+        assert!(check(&params));
     }
 }
