@@ -1,10 +1,11 @@
 use fileclass::core::{
     config::Config,
-    document::Document,
     query::{check, CheckParams},
 };
+
+use fileclass::extra::input::read_stdin_documents;
+
 use std::env;
-use std::io;
 
 // TODO: Handle errors here.
 fn main() {
@@ -17,20 +18,15 @@ fn main() {
 
     let prompt = &args[1..].join(" ");
 
-    // TODO: Move into `aux` as function `read_stdin_documents` or `stdin_filenames_into_documents`.
-    let result = io::stdin()
-        .lines()
-        .map(|l| l.expect("Can't read line from stdio"))
-        .map(|l| Document::from_filename(&l))
-        .filter(|d| {
-            let params = CheckParams {
-                prompt: &prompt,
-                document: &d,
-                library: &config.labels,
-            };
+    let result = read_stdin_documents().filter(|d| {
+        let params = CheckParams {
+            prompt: &prompt,
+            document: &d,
+            library: &config.labels,
+        };
 
-            check(&params)
-        });
+        check(&params)
+    });
 
     result.for_each(|d| println!("{}", d.path));
 }
