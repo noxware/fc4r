@@ -3,6 +3,7 @@ use std::path::Path;
 
 const FILENAME_LABELS_DELIMITER: &str = " fn ";
 
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Document {
     // Provisory name matching the `from_filename` function.
     pub path: String,
