@@ -1,11 +1,10 @@
-use std::io;
-
 use tabled::{
     settings::{object::Rows, Modify, Style, Width},
     Table, Tabled,
 };
 
-use fileclass::core::{config::Config, document::Document};
+use fileclass::core::config::Config;
+use fileclass::extra::input::read_stdin_documents;
 
 #[derive(Tabled)]
 struct Row {
@@ -35,10 +34,8 @@ fn main() {
         });
     }
 
-    let mut unknown_labels: Vec<String> = io::stdin()
-        .lines()
-        .map(|line| line.expect("Can't read line from stdio"))
-        .flat_map(|line| Document::from_filename(&line).labels)
+    let mut unknown_labels: Vec<String> = read_stdin_documents()
+        .flat_map(|document| document.labels)
         .filter(|label| !library.is_known(label))
         .collect();
 
