@@ -1,3 +1,4 @@
+use fileclass::utils::fs::get_unique_target;
 use std::{env, fs, io, path::Path, process};
 
 fn main() {
@@ -15,25 +16,10 @@ fn main() {
 
     for line in lines {
         if let Ok(file_path) = line {
-            let file_path = file_path.trim();
-            let file_name = Path::new(&file_path).file_name().unwrap();
-            let mut target_path = target_folder.join(file_name);
-            let mut index = 1;
+            let source_path = Path::new(&file_path);
+            let target_path = get_unique_target(source_path, target_folder);
 
-            while target_path.exists() {
-                let file_name = Path::new(&file_path).file_stem().unwrap();
-                let file_ext = Path::new(&file_path).extension().unwrap();
-                let link_name = format!(
-                    "{} ({}).{}",
-                    file_name.to_str().unwrap(),
-                    index,
-                    file_ext.to_str().unwrap()
-                );
-                target_path = target_folder.join(link_name);
-                index += 1;
-            }
-
-            if let Err(err) = fs::rename(&file_path, &target_path) {
+            if let Err(err) = fs::rename(&source_path, &target_path) {
                 eprintln!("Failed to move file: {}", err);
                 process::exit(1);
             }
