@@ -4,10 +4,12 @@
 // TODO: Support dirs.
 
 use std::fs;
+use std::io::BufRead;
 use std::path::Path;
 use std::process;
 
 use fileclass::core::config::Config;
+use fileclass::utils::fs::get_unique_target;
 
 fn main() {
     let config = Config::std_load().unwrap();
@@ -24,48 +26,35 @@ fn main() {
     // Create the target folder
     fs::create_dir_all(target_folder).unwrap();
 
-    // Output the target folder path
-    println!("{}", target_folder.display());
-
     // Read standard input as lines of file paths
-    let stdin = std::io::stdin();
+    let stdin = std::io::stdin().lock();
     let lines = stdin.lines();
 
     // Generate hard links to each file in the target folder
     for line in lines {
         if let Ok(file_path) = line {
-            let file_path = file_path.trim();
-            let file_name = Path::new(&file_path).file_name().unwrap();
-            let mut link_path = target_folder.join(file_name);
-            let mut index = 1;
-
-            while link_path.exists() {
-                let file_name = Path::new(&file_path).file_stem().unwrap();
-                let file_ext = Path::new(&file_path).extension().unwrap();
-                let link_name = format!(
-                    "{} ({}).{}",
-                    file_name.to_str().unwrap(),
-                    index,
-                    file_ext.to_str().unwrap()
-                );
-                link_path = target_folder.join(link_name);
-                index += 1;
-            }
+            let source_path = Path::new(&file_path);
+            let target_path = get_unique_target(source_path, target_folder);
+            println!("{}", target_path.to_str().unwrap());
 
             // Temporal safe guard for directories and other entities.
             // TODO: Support directories at least.
-            if !Path::new(&file_path).is_file() {
+            if !Path::new(&source_path).is_file() {
                 eprintln!(
                     "Warning: \"{}\" is not a regular file, ignoring.",
-                    file_path
+                    source_path.to_str().unwrap()
                 );
 
                 continue;
             }
 
             // Hard link
-            if let Err(err) = fs::hard_link(&file_path, &link_path) {
-                eprintln!("Failed to create hard link for \"{}\": {}", file_path, err);
+            if let Err(err) = fs::hard_link(&source_path, &target_path) {
+                eprintln!(
+                    "Failed to create hard link for \"{}\": {}",
+                    source_path.to_str().unwrap(),
+                    err
+                );
                 process::exit(1);
             }
         }
