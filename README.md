@@ -1,4 +1,5 @@
 # FC4R
+![example workflow](https://github.com/noxware/fc4r/actions/workflows/checks.yaml/badge.svg)
 
 ## Introduction
 
