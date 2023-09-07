@@ -26,6 +26,8 @@ For the moment the cargo version means nothing.
 - The system is composed of individual executables/commands that can be
   composed between them and also with your own software if necessary.
 - Contains a good amount of unit tests.
+- [Obsidian](https://obsidian.md/) integration thanks to [fc4r-obsidian](https://github.com/noxware/fc4r-obsidian)
+  unlocks new ways to work with embedded files.
 
 ## Limitations
 
@@ -38,6 +40,10 @@ For the moment the cargo version means nothing.
 - At the moment, tagged directories are not well handled by the system.
 - To view the results of a query you will need to generate filesystem links
   with `fclink` or move the files using `fcmv`.
+  
+  > UPDATE: You can also display results of a query inside a [Obsidian](https://obsidian.md/)
+  > note using [fc4r-obsidian](https://github.com/noxware/fc4r-obsidian).
+  
 - Although the project is tested, it doesn't handle unexpected errors or weird
   cases very well. This is because it is still in development and I have limited
   time to dedicate to this project so I prefer to focus on adding features for
@@ -48,6 +54,18 @@ For the moment the cargo version means nothing.
 I will write some in depth guide when more features are added, but for the
 moment you will need to figure it out using the examples in the `docs`
 directory.
+
+## Future planned features
+
+- [ ] Allow querying folders without initializing a configuration for them.
+- [ ] Move file system dependency out of the `fcq` executable.
+- [ ] Support some escape hatch to avoid walking a whole directory again and
+      again when needing to query the same files multiple times.
+- [ ] Support a long-lived process or server for making queries.
+- [ ] Start using semantic versioning.
+- [ ] E2E testing.
+- [ ] Automatic release compilation.
+- [ ] Find a way to integrate with RDBMS.
 
 ## License
 
