@@ -64,8 +64,9 @@ directory.
 - [ ] Support a long-lived process or server for making queries.
 - [ ] Start using semantic versioning.
 - [ ] E2E testing.
-- [ ] Automatic release compilation.
+- [ ] Automatic release compilation, and changelog.
 - [ ] Find a way to integrate with RDBMS.
+- [ ] Support tags on the right side of the filename.
 
 ## License
 
