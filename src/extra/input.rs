@@ -65,13 +65,13 @@ mod tests {
             vec![
                 Document {
                     path: "a b c fn file1.ext".to_string(),
-                    name: "file1.ext".to_string(),
+                    name: "file1".to_string(),
                     labels: LabelSet::from(["a", "b", "c"]),
                 },
                 Document {
                     // TODO: Should this be trimmed by Document?
                     path: "        the path/to/la_la-la fn file2.ext".to_string(),
-                    name: "file2.ext".to_string(),
+                    name: "file2".to_string(),
                     labels: LabelSet::from(["la_la-la"]),
                 },
             ]
