@@ -23,6 +23,15 @@ pub struct Document {
     pub name: String,
 }
 
+/// Util to remove the `fr` prefix mostly when present and trim.
+fn clean_name(s: &str) -> &str {
+    if s.starts_with(RIGHT_LABELS_TOGGLE) {
+        &s[RIGHT_LABELS_TOGGLE.len()..].trim()
+    } else {
+        s.trim()
+    }
+}
+
 impl Document {
     pub fn from_filename(path: &str) -> Self {
         let path = Path::new(path);
@@ -62,7 +71,7 @@ impl Document {
                     labels,
                     // Shall I use lossy here?
                     path: path.to_str().unwrap().to_string(),
-                    name: name.trim().to_string(),
+                    name: clean_name(name).to_string(),
                 }
             }
             None => Self {
