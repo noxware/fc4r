@@ -133,11 +133,60 @@ mod tests {
     }
 
     #[test]
+    fn from_filename_works_with_right_fr_labels_and_empty_name() {
+        // Warning: If `fr` is at the beginning, it will be considered a "right fn" case.
+        let doc = Document::from_filename("path/to/  fr   l1   l2   .ext   ");
+
+        assert_eq!(doc.name, "");
+        assert_eq!(doc.labels, LabelSet::from(["l1", "l2"]));
+    }
+
+    #[test]
+    fn from_filename_works_with_right_fr_labels_and_empty_labels() {
+        let doc = Document::from_filename("path/to/  name    fr   .ext   ");
+
+        assert_eq!(doc.name, "name");
+        assert!(doc.labels.is_empty());
+    }
+
+    #[test]
+    fn from_filename_works_with_right_fr_labels_and_empty_name_and_empty_labels() {
+        let doc = Document::from_filename("path/to/  fr   .ext   ");
+
+        assert_eq!(doc.name, "");
+        assert!(doc.labels.is_empty());
+    }
+
+    #[test]
     fn from_filename_works_with_right_fn_labels() {
         // Should handle empty space before `fr`?
         let doc = Document::from_filename("path/to/fr  name   fn    l1   l2   .ext   ");
 
         assert_eq!(doc.name, "name");
         assert_eq!(doc.labels, LabelSet::from(["l1", "l2"]));
+    }
+
+    #[test]
+    fn from_filename_works_with_right_fn_labels_and_empty_name() {
+        let doc = Document::from_filename("path/to/fr   fn    l1   l2   .ext   ");
+
+        assert_eq!(doc.name, "");
+        assert_eq!(doc.labels, LabelSet::from(["l1", "l2"]));
+    }
+
+    #[test]
+    fn from_filename_works_with_right_fn_labels_and_empty_labels() {
+        let doc = Document::from_filename("path/to/fr  name   fn    .ext   ");
+
+        assert_eq!(doc.name, "name");
+        assert!(doc.labels.is_empty());
+    }
+
+    #[test]
+    fn from_filename_works_with_right_fn_labels_and_empty_name_and_empty_labels() {
+        let doc = Document::from_filename("path/to/fr   fn    .ext   ");
+
+        assert_eq!(doc.name, "");
+        assert!(doc.labels.is_empty());
     }
 }
