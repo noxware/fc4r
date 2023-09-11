@@ -84,3 +84,13 @@ impl Message {
         Self::deserialize(&input)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn todo() {
+        panic!("TODO");
+    }
+}
