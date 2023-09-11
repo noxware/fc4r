@@ -1,3 +1,5 @@
+use serde::{Deserialize, Serialize};
+
 use crate::utils::fs::get_prefix;
 
 use super::label::LabelSet;
@@ -15,7 +17,7 @@ enum LabelPlacement {
     RightByFr,
 }
 
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
 pub struct Document {
     // Provisory name matching the `from_filename` function.
     pub path: String,

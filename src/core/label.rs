@@ -5,7 +5,7 @@ use std::error::Error;
 use std::iter::FromIterator;
 use std::iter::IntoIterator;
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct LabelSet(HashSet<String>);
 
 impl LabelSet {

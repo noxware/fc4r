@@ -4,15 +4,21 @@ use std::path::PathBuf;
 use crate::core::document::Document;
 use crate::utils::fs::get_unique_target;
 
-pub fn read_documents(reader: impl io::BufRead) -> impl Iterator<Item = Document> {
+use super::ipc::Message;
+
+pub fn read_messages(reader: impl io::BufRead) -> impl Iterator<Item = Message> {
     reader
         .lines()
         .map(|l| l.expect("Can't read line from input"))
-        .map(|l| Document::from_filename(&l))
+        .map(|l| Message::deserialize(&l))
+        .map(|m| match m {
+            Message::Path(p) => Message::Document(Document::from_filename(&p)),
+            _ => m,
+        })
 }
 
-pub fn read_stdin_documents() -> impl Iterator<Item = Document> {
-    read_documents(io::stdin().lock())
+pub fn read_stdin_messages() -> impl Iterator<Item = Message> {
+    read_messages(io::stdin().lock())
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]

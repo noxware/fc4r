@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use serde_json::value::Value;
 
-use crate::core::config::Config;
+use crate::core::{config::Config, document::Document};
 
 #[derive(Debug, Serialize, Deserialize)]
 struct RawMessage {
@@ -36,6 +36,7 @@ pub enum Message {
     Config(Config),
     // TODO: Consider renaming this to "Line", "String", "TextLine", etc.
     Path(String),
+    Document(Document),
 }
 
 impl Message {
@@ -45,6 +46,7 @@ impl Message {
 
         match raw_message.kind.as_str() {
             "config" => Message::Config(serde_json::from_value(payload).unwrap()),
+            "document" => Message::Document(serde_json::from_value(payload).unwrap()),
             "path" => Message::Path(serde_json::from_value(payload).unwrap()),
             kind => panic!("Unknown message type '{}'", kind),
         }
@@ -55,6 +57,10 @@ impl Message {
             Message::Config(config) => RawMessage {
                 kind: "config".to_string(),
                 payload: serde_json::to_value(config).unwrap(),
+            },
+            Message::Document(document) => RawMessage {
+                kind: "document".to_string(),
+                payload: serde_json::to_value(document).unwrap(),
             },
             Message::Path(path) => RawMessage {
                 kind: "path".to_string(),
