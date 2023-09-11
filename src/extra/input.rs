@@ -12,7 +12,7 @@ pub fn read_messages(reader: impl io::BufRead) -> impl Iterator<Item = Message> 
         .map(|l| l.expect("Can't read line from input"))
         .map(|l| Message::deserialize(&l))
         .map(|m| match m {
-            Message::Path(p) => Message::Document(Document::from_filename(&p)),
+            Message::Line(l) => Message::Document(Document::from_filename(&l)),
             _ => m,
         })
 }

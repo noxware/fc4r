@@ -16,14 +16,14 @@ impl RawMessage {
             serde_json::from_str(input).unwrap()
         } else {
             RawMessage {
-                kind: "path".to_string(),
+                kind: "line".to_string(),
                 payload: serde_json::to_value(input).unwrap(),
             }
         }
     }
 
     fn serialize(&self) -> String {
-        if self.kind == "path" {
+        if self.kind == "line" {
             serde_json::from_value(self.payload.clone()).unwrap()
         } else {
             serde_json::to_string(&self).unwrap()
@@ -35,7 +35,7 @@ impl RawMessage {
 pub enum Message {
     Config(Config),
     // TODO: Consider renaming this to "Line", "String", "TextLine", etc.
-    Path(String),
+    Line(String),
     Document(Document),
 }
 
@@ -47,7 +47,7 @@ impl Message {
         match raw_message.kind.as_str() {
             "config" => Message::Config(serde_json::from_value(payload).unwrap()),
             "document" => Message::Document(serde_json::from_value(payload).unwrap()),
-            "path" => Message::Path(serde_json::from_value(payload).unwrap()),
+            "line" => Message::Line(serde_json::from_value(payload).unwrap()),
             kind => panic!("Unknown message type '{}'", kind),
         }
     }
@@ -62,9 +62,9 @@ impl Message {
                 kind: "document".to_string(),
                 payload: serde_json::to_value(document).unwrap(),
             },
-            Message::Path(path) => RawMessage {
-                kind: "path".to_string(),
-                payload: serde_json::to_value(path).unwrap(),
+            Message::Line(line) => RawMessage {
+                kind: "line".to_string(),
+                payload: serde_json::to_value(line).unwrap(),
             },
         };
 
