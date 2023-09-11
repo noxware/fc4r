@@ -3,11 +3,13 @@
 use std::env;
 use std::fs;
 
-use fileclass::core::config::STD_CONFIG_DIR;
+use fileclass::core::config::{Config, STD_CONFIG_DIR};
 
 fn main() {
     // Get the current directory
     let current_dir = env::current_dir().unwrap();
+
+    load_config();
 
     // Recursively traverse the directory tree
     traverse_directory(&current_dir, &current_dir);
@@ -35,4 +37,10 @@ fn traverse_directory(path: &std::path::Path, base_path: &std::path::Path) {
             }
         }
     }
+}
+
+fn load_config() {
+    let config = Config::std_load().expect("Can't load config");
+    // Can possibly use `serde_json::to_writer(std::io::stdout(), &config)`.
+    println!("{}", serde_json::to_string(&config).unwrap());
 }

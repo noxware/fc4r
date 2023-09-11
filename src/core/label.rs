@@ -1,4 +1,4 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::error::Error;
@@ -76,6 +76,7 @@ impl<const N: usize> From<[&str; N]> for LabelSet {
     }
 }
 
+#[derive(Deserialize, Serialize)]
 struct LabelDef {
     name: String,
     aliases: Vec<String>,
@@ -93,6 +94,7 @@ struct RawLabelDef {
     description: String,
 }
 
+#[derive(Deserialize, Serialize)]
 pub struct LabelLibrary {
     label_defs: Vec<LabelDef>,
 }

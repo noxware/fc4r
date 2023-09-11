@@ -1,4 +1,4 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::error::Error;
 use std::fs;
 use std::path::Path;
@@ -9,12 +9,13 @@ pub const STD_CONFIG_DIR: &str = "fileclass";
 pub const LABELS_FILENAME: &str = "labels.toml";
 pub const SETTINGS_FILENAME: &str = "settings.toml";
 
+#[derive(Deserialize, Serialize)]
 pub struct Config {
     pub labels: LabelLibrary,
     pub settings: Settings,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 pub struct Settings {
     // TODO: Use a default if missing and use that default in fcinit.
     pub link_dir: String,
