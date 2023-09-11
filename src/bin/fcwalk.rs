@@ -4,6 +4,7 @@ use std::env;
 use std::fs;
 
 use fileclass::core::config::{Config, STD_CONFIG_DIR};
+use fileclass::extra::ipc::Message;
 
 fn main() {
     // Get the current directory
@@ -41,6 +42,7 @@ fn traverse_directory(path: &std::path::Path, base_path: &std::path::Path) {
 
 fn load_config() {
     let config = Config::std_load().expect("Can't load config");
-    // Can possibly use `serde_json::to_writer(std::io::stdout(), &config)`.
-    println!("{}", serde_json::to_string(&config).unwrap());
+    let msg = Message::Config(config);
+
+    println!("{}", msg.serialize());
 }
