@@ -64,13 +64,26 @@ mod tests {
 
     #[test]
     fn read_messages_works() {
-        let input = r#"
+        // TODO: If the string doesn't start with `{`, it will be interpreted as a line.
+        // Shall that change or be trimmed?
+        let input = r#"{"type": "line", "payload": "bla"}
+{"type": "document", "payload": {"path": "thepath", "name": "thename", "labels": ["thelabel"]}}
         a b c fn file1.ext
         the path/to/la_la-la fn file2.ext"#;
         let messages: Vec<_> = read_messages(input.as_bytes()).collect();
         assert_eq!(
             messages,
             vec![
+                Message::Document(Document {
+                    path: "bla".to_string(),
+                    name: "bla".to_string(),
+                    labels: LabelSet::empty(),
+                }),
+                Message::Document(Document {
+                    path: "thepath".to_string(),
+                    name: "thename".to_string(),
+                    labels: LabelSet::from(["thelabel"]),
+                }),
                 Message::Document(Document {
                     // TODO: Should this be trimmed by Document?
                     path: "        a b c fn file1.ext".to_string(),
