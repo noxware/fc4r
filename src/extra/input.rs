@@ -1,7 +1,7 @@
 use std::io;
 use std::path::PathBuf;
 
-use crate::core::{config::Config, document::Document};
+use crate::core::document::Document;
 use crate::utils::fs::get_unique_target;
 
 use super::ipc::Message;
@@ -59,7 +59,8 @@ pub fn map_stdin_sources_to_target_folder(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::label::LabelSet;
+    use crate::core::config::{Config, Settings};
+    use crate::core::label::{LabelLibrary, LabelSet};
     use std::path::Path;
 
     #[test]
@@ -68,7 +69,8 @@ mod tests {
         // Shall that change or be trimmed?
         let input = r#"{"type": "line", "payload": "bla"}
 {"type": "document", "payload": {"path": "thepath", "name": "thename", "labels": ["thelabel"]}}
-        a b c fn file1.ext
+{"type":"config","payload":{"labels":{"label_defs":[{"name":"lx","description":"dx","aliases":["ax"],"implies": []}]},"settings":{"link_dir":"ld"}}}
+    a b c fn file1.ext
         the path/to/la_la-la fn file2.ext"#;
         let messages: Vec<_> = read_messages(input.as_bytes()).collect();
         assert_eq!(
@@ -84,9 +86,21 @@ mod tests {
                     name: "thename".to_string(),
                     labels: LabelSet::from(["thelabel"]),
                 }),
+                Message::Config(Config {
+                    labels: LabelLibrary::from_toml(
+                        r#"[lx]
+                        description = "dx"
+                        aliases = ["ax"]
+                        "#,
+                    )
+                    .unwrap(),
+                    settings: Settings {
+                        link_dir: "ld".to_string(),
+                    },
+                }),
                 Message::Document(Document {
                     // TODO: Should this be trimmed by Document?
-                    path: "        a b c fn file1.ext".to_string(),
+                    path: "    a b c fn file1.ext".to_string(),
                     name: "file1".to_string(),
                     labels: LabelSet::from(["a", "b", "c"]),
                 }),
