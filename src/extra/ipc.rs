@@ -107,36 +107,46 @@ mod tests {
 
     #[test]
     fn serialize_and_deserialize_document() {
-        let msg = Message::Document(Document {
+        let document = Document {
             path: "path".to_string(),
             name: "name".to_string(),
-            labels: LabelSet::from(["label"]),
-        });
+            labels: LabelSet::from(["l1", "l2"]),
+        };
+        let msg = Message::Document(document.clone());
         let serialized = msg.serialize();
         let deserialized = Message::deserialize(&serialized);
 
         assert_eq!(msg, deserialized);
+        assert_eq!(document.name, "name");
+        assert_eq!(document.path, "path");
+        assert_eq!(document.labels, LabelSet::from(["l1", "l2"]));
     }
 
     #[test]
     fn serialize_and_deserialize_config() {
-        let msg = Message::Config(Config {
-            labels: LabelLibrary::from_toml(
-                r#"[label]
-                aliases = ["alias"]
-                implies = ["implied"]
-                description = "a label"
+        let library = LabelLibrary::from_toml(
+            r#"[label]
+            aliases = ["alias"]
+            implies = ["implied"]
+            description = "a label"
 
-                [implied]"#,
-            )
-            .unwrap(),
-            settings: Settings {
-                link_dir: "link_dir".to_string(),
-            },
+            [implied]"#,
+        )
+        .unwrap();
+        let settings = Settings {
+            link_dir: "link_dir".to_string(),
+        };
+
+        let msg = Message::Config(Config {
+            labels: library.clone(),
+            settings: settings.clone(),
         });
         let serialized = msg.serialize();
         let deserialized = Message::deserialize(&serialized);
 
         assert_eq!(msg, deserialized);
+        assert_eq!(library.resolve("alias"), "label");
+        assert_eq!(library.resolve("implied"), "implied");
+        assert_eq!(settings.link_dir, "link_dir");
     }
 }
