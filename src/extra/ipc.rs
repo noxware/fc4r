@@ -74,10 +74,69 @@ impl Message {
 
 #[cfg(test)]
 mod tests {
+    use crate::core::{
+        config::Settings,
+        label::{LabelLibrary, LabelSet},
+    };
+
     use super::*;
 
     #[test]
-    fn todo() {
-        panic!("TODO");
+    fn serialize_line() {
+        let msg = Message::Line("test".to_string());
+        let serialized = msg.serialize();
+
+        assert_eq!(serialized, "test");
+    }
+
+    #[test]
+    fn deserialize_implicit_line() {
+        let msg = Message::deserialize("test");
+        let expected = Message::Line("test".to_string());
+
+        assert_eq!(msg, expected);
+    }
+
+    #[test]
+    fn deserialize_explicit_line() {
+        let msg = Message::deserialize(r#"{"type": "line", "payload": "test"}"#);
+        let expected = Message::Line("test".to_string());
+
+        assert_eq!(msg, expected);
+    }
+
+    #[test]
+    fn serialize_and_deserialize_document() {
+        let msg = Message::Document(Document {
+            path: "path".to_string(),
+            name: "name".to_string(),
+            labels: LabelSet::from(["label"]),
+        });
+        let serialized = msg.serialize();
+        let deserialized = Message::deserialize(&serialized);
+
+        assert_eq!(msg, deserialized);
+    }
+
+    #[test]
+    fn serialize_and_deserialize_config() {
+        let msg = Message::Config(Config {
+            labels: LabelLibrary::from_toml(
+                r#"[label]
+                aliases = ["alias"]
+                implies = ["implied"]
+                description = "a label"
+
+                [implied]"#,
+            )
+            .unwrap(),
+            settings: Settings {
+                link_dir: "link_dir".to_string(),
+            },
+        });
+        let serialized = msg.serialize();
+        let deserialized = Message::deserialize(&serialized);
+
+        assert_eq!(msg, deserialized);
     }
 }
