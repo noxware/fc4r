@@ -70,19 +70,6 @@ impl Message {
 
         raw_message.serialize()
     }
-
-    // TODO: Check if these are safe to use.
-    pub fn send(writer: &mut impl std::io::Write, message: &Self) {
-        let serialized = message.serialize();
-        writeln!(writer, "{}", serialized).unwrap();
-    }
-
-    // TODO: Check if these are safe to use.
-    pub fn recv(reader: &mut impl std::io::BufRead) -> Self {
-        let mut input = String::new();
-        reader.read_line(&mut input).unwrap();
-        Self::deserialize(&input)
-    }
 }
 
 #[cfg(test)]
