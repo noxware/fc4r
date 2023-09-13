@@ -22,6 +22,14 @@ pub fn read_stdin_messages() -> impl Iterator<Item = Message> {
     read_messages(io::stdin().lock())
 }
 
+// TODO: Remove this compat.
+pub fn read_stdin_documents() -> impl Iterator<Item = Document> {
+    read_stdin_messages().filter_map(|m| match m {
+        Message::Document(d) => Some(d),
+        _ => None,
+    })
+}
+
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct SourceTargetPair {
     pub source: PathBuf,
