@@ -76,7 +76,7 @@ impl<const N: usize> From<[&str; N]> for LabelSet {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, PartialEq, Eq, Clone)]
 struct LabelDef {
     name: String,
     aliases: Vec<String>,
@@ -94,7 +94,7 @@ struct RawLabelDef {
     description: String,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Eq)]
 pub struct LabelLibrary {
     label_defs: Vec<LabelDef>,
 }

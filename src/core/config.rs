@@ -9,13 +9,13 @@ pub const STD_CONFIG_DIR: &str = "fileclass";
 pub const LABELS_FILENAME: &str = "labels.toml";
 pub const SETTINGS_FILENAME: &str = "settings.toml";
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, PartialEq, Eq, Clone)]
 pub struct Config {
     pub labels: LabelLibrary,
     pub settings: Settings,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, PartialEq, Eq, Clone)]
 pub struct Settings {
     // TODO: Use a default if missing and use that default in fcinit.
     pub link_dir: String,

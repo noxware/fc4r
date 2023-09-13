@@ -31,7 +31,7 @@ impl RawMessage {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Message {
     Config(Config),
     // TODO: Consider renaming this to "Line", "String", "TextLine", etc.

@@ -62,26 +62,26 @@ mod tests {
     use std::path::Path;
 
     #[test]
-    fn read_documents_works() {
+    fn read_messages_works() {
         let input = "a b c fn file1.ext
         the path/to/la_la-la fn file2.ext";
-        let documents: Vec<_> = read_documents(input.as_bytes()).collect();
+        let messages: Vec<_> = read_messages(input.as_bytes()).collect();
         assert_eq!(
-            documents,
+            messages,
             vec![
-                Document {
+                Message::Document(Document {
                     path: "a b c fn file1.ext".to_string(),
                     name: "file1".to_string(),
                     labels: LabelSet::from(["a", "b", "c"]),
-                },
-                Document {
+                }),
+                Message::Document(Document {
                     // TODO: Should this be trimmed by Document?
                     path: "        the path/to/la_la-la fn file2.ext".to_string(),
                     name: "file2".to_string(),
                     labels: LabelSet::from(["la_la-la"]),
-                },
+                }),
             ]
-        )
+        );
     }
 
     #[test]
