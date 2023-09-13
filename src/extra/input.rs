@@ -1,7 +1,7 @@
 use std::io;
 use std::path::PathBuf;
 
-use crate::core::document::Document;
+use crate::core::{config::Config, document::Document};
 use crate::utils::fs::get_unique_target;
 
 use super::ipc::Message;
@@ -10,6 +10,7 @@ pub fn read_messages(reader: impl io::BufRead) -> impl Iterator<Item = Message> 
     reader
         .lines()
         .map(|l| l.expect("Can't read line from input"))
+        .filter(|l| !l.trim().is_empty())
         .map(|l| Message::deserialize(&l))
         .map(|m| match m {
             Message::Line(l) => Message::Document(Document::from_filename(&l)),
@@ -63,19 +64,21 @@ mod tests {
 
     #[test]
     fn read_messages_works() {
-        let input = "a b c fn file1.ext
-        the path/to/la_la-la fn file2.ext";
+        let input = r#"
+        a b c fn file1.ext
+        the path/to/la_la-la fn file2.ext"#;
         let messages: Vec<_> = read_messages(input.as_bytes()).collect();
         assert_eq!(
             messages,
             vec![
                 Message::Document(Document {
-                    path: "a b c fn file1.ext".to_string(),
+                    // TODO: Should this be trimmed by Document?
+                    path: "        a b c fn file1.ext".to_string(),
                     name: "file1".to_string(),
                     labels: LabelSet::from(["a", "b", "c"]),
                 }),
                 Message::Document(Document {
-                    // TODO: Should this be trimmed by Document?
+                    // Should this be trimmed by Document?
                     path: "        the path/to/la_la-la fn file2.ext".to_string(),
                     name: "file2".to_string(),
                     labels: LabelSet::from(["la_la-la"]),
