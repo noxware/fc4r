@@ -3,8 +3,8 @@ use tabled::{
     Table, Tabled,
 };
 
-use fileclass::core::config::Config;
-use fileclass::extra::input::read_stdin_documents;
+use fileclass::extra::ipc::Message;
+use fileclass::{core::label::LabelLibrary, extra::input::read_stdin_messages};
 
 #[derive(Tabled)]
 struct Row {
@@ -14,10 +14,30 @@ struct Row {
 }
 
 fn main() {
-    let config = Config::std_load().unwrap();
-    let library = config.labels;
-
+    let mut library = LabelLibrary::empty();
     let mut rows: Vec<Row> = Vec::new();
+
+    let mut unknown_labels: Vec<String> = Vec::new();
+
+    for msg in read_stdin_messages() {
+        match msg {
+            Message::Config(c) => {
+                library = c.labels;
+            }
+            Message::Document(d) => {
+                for label in d.labels {
+                    if !library.is_known(&label) {
+                        unknown_labels.push(label);
+                    }
+                }
+            }
+            _ => panic!("Unexpected message"),
+        }
+    }
+
+    unknown_labels.sort();
+    unknown_labels.dedup(); // Works thanks to the sort.
+
     let mut names = library.label_names();
     names.sort();
 
@@ -33,14 +53,6 @@ fn main() {
             description: library.get_description(name).to_string(),
         });
     }
-
-    let mut unknown_labels: Vec<String> = read_stdin_documents()
-        .flat_map(|document| document.labels)
-        .filter(|label| !library.is_known(label))
-        .collect();
-
-    unknown_labels.sort();
-    unknown_labels.dedup(); // Works thanks to the sort.
 
     for label in unknown_labels.iter() {
         rows.push(Row {
