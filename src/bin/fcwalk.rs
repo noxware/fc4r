@@ -41,8 +41,15 @@ fn traverse_directory(path: &std::path::Path, base_path: &std::path::Path) {
 }
 
 fn load_config() {
-    let config = Config::std_load().expect("Can't load config");
-    let msg = Message::Config(config);
-
-    println!("{}", msg.serialize());
+    match Config::std_load() {
+        Ok(config) => {
+            let msg = Message::Config(config);
+            println!("{}", msg.serialize());
+        }
+        Err(e) => {
+            // TODO: Only warn if missing.
+            // TODO: Fail if the config is invalid.
+            eprintln!("Error loading config: {}", e);
+        }
+    }
 }
