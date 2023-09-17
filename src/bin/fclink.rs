@@ -3,16 +3,31 @@
 // TODO: Improve.
 // TODO: Support dirs.
 
-use std::fs;
 use std::path::Path;
 use std::process;
+use std::{env, fs};
 
 use fileclass::core::config::Config;
 use fileclass::extra::input::{map_stdin_sources_to_target_folder, SourceTargetPair};
 
+fn get_link_dir(args: &Vec<String>) -> String {
+    match args.len() {
+        1 => {
+            // TODO: Handle.
+            let config = Config::std_load().unwrap();
+            config.settings.link_dir
+        }
+        2 => args[1].clone(),
+        _ => {
+            eprintln!("Usage: fclink <target_dir>");
+            process::exit(1);
+        }
+    }
+}
+
 fn main() {
-    let config = Config::std_load().unwrap();
-    let link_dir = config.settings.link_dir;
+    let args: Vec<String> = env::args().collect();
+    let link_dir = get_link_dir(&args);
 
     // Get the target folder path
     let target_folder = Path::new(&link_dir);
