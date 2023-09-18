@@ -55,10 +55,8 @@ fn check_pseudo(
 ) -> bool {
     // TODO: Refator each type of pseudo matcher into it's own matcher module.
     match (prefix, suffix) {
-        // TODO: If this is the negation of `labeled` consider removing it.
         ("system", "unlabeled") => labels.is_empty(),
         ("system", "labeled") => !labels.is_empty(),
-        // TODO: If this is the negation of `known` consider removing it.
         ("system", "unknown") => labels.iter().any(|l| !library.is_known(l)),
         ("system", "known") => labels.iter().any(|l| library.is_known(l)),
         ("not", _) => !check_table(document, labels, suffix, library),
@@ -156,5 +154,30 @@ mod tests {
         ac("explicit:not:l3", false);
         ac("explicit:label", true);
         ac("explicit:implied", false);
+    }
+
+    #[test]
+    fn check_with_system_known() {
+        let library = make_library();
+        let mut document = make_document();
+        let ac = |prompt: &str, expected: bool, document: &Document| {
+            assert_check(prompt, expected, &document, &library)
+        };
+
+        document.labels = LabelSet::from(["l1", "label"]);
+        ac("system:known", true, &document);
+        ac("system:unknown", true, &document);
+        // Proof of `not:system:known != system:unknown`.
+        ac("not:system:known", false, &document);
+
+        document.labels = LabelSet::from(["l1", "l2"]);
+        ac("system:known", false, &document);
+        ac("system:unknown", true, &document);
+        ac("not:system:known", true, &document);
+
+        document.labels = LabelSet::from(["label", "implied"]);
+        ac("system:known", true, &document);
+        ac("system:unknown", false, &document);
+        ac("not:system:known", false, &document);
     }
 }
