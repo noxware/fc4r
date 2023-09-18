@@ -25,7 +25,7 @@ pub fn check(params: &CheckParams) -> bool {
         let mut extended_labels = document.labels.clone();
         extended_labels.expand_with(library);
 
-        if !check_table(document, &extended_labels, label) {
+        if !check_table(document, &extended_labels, label, &library) {
             matches = false;
             break;
         }
@@ -34,19 +34,34 @@ pub fn check(params: &CheckParams) -> bool {
     matches
 }
 
-fn check_table(document: &Document, labels: &LabelSet, current_label: &str) -> bool {
+fn check_table(
+    document: &Document,
+    labels: &LabelSet,
+    current_label: &str,
+    library: &LabelLibrary,
+) -> bool {
     match current_label.split_once(PSEUDO_DELIMITER) {
-        Some((prefix, suffix)) => check_pseudo(document, labels, prefix, suffix),
+        Some((prefix, suffix)) => check_pseudo(document, labels, prefix, suffix, library),
         None => check_presence(labels, current_label),
     }
 }
 
-fn check_pseudo(document: &Document, labels: &LabelSet, prefix: &str, suffix: &str) -> bool {
+fn check_pseudo(
+    document: &Document,
+    labels: &LabelSet,
+    prefix: &str,
+    suffix: &str,
+    library: &LabelLibrary,
+) -> bool {
     // TODO: Refator each type of pseudo matcher into it's own matcher module.
     match (prefix, suffix) {
+        // TODO: If this is the negation of `labeled` consider removing it.
         ("system", "unlabeled") => labels.is_empty(),
         ("system", "labeled") => !labels.is_empty(),
-        ("not", _) => !check_table(document, labels, suffix),
+        // TODO: If this is the negation of `known` consider removing it.
+        ("system", "unknown") => labels.iter().any(|l| !library.is_known(l)),
+        ("system", "known") => labels.iter().any(|l| library.is_known(l)),
+        ("not", _) => !check_table(document, labels, suffix, library),
         ("explicit", _) => check_presence(&document.labels, suffix),
         _ => false,
     }
@@ -136,5 +151,7 @@ mod tests {
 
         params.prompt = "explicit:implied";
         assert!(!check(&params));
+
+        // TODO: Add tests for `known` and `unknown`.
     }
 }
