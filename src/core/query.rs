@@ -76,82 +76,62 @@ mod tests {
     use super::*;
     use crate::core::label::LabelSet;
 
-    #[test]
-    fn check_works() {
-        let toml = r#"
+    fn make_document() -> Document {
+        Document {
+            path: "".into(),
+            name: "".into(),
+            labels: LabelSet::from(["l1", "l2", "label"]),
+        }
+    }
+
+    fn make_library() -> LabelLibrary {
+        let toml = format!(
+            r#"
             [label]
             aliases = ["alias"]
             implies = ["implied"]
             description = "a label"
 
             [implied]
-        "#;
+        "#,
+        );
 
-        let library = LabelLibrary::from_toml(toml).unwrap();
+        LabelLibrary::from_toml(&toml).unwrap()
+    }
 
-        let document = Document {
-            path: "".into(),
-            name: "name".into(),
-            labels: LabelSet::from(["l1", "l2", "label"]),
+    fn assert_check(prompt: &str, expected: bool, document: &Document, library: &LabelLibrary) {
+        let params = CheckParams {
+            prompt,
+            document,
+            library,
         };
 
-        let mut params = CheckParams {
-            prompt: "",
-            document: &document,
-            library: &library,
-        };
+        assert_eq!(check(&params), expected);
+    }
 
-        params.prompt = "l1";
-        assert!(check(&params));
+    #[test]
+    fn check_works() {
+        let library = make_library();
+        let document = make_document();
 
-        params.prompt = "l2";
-        assert!(check(&params));
+        let ac = |prompt: &str, expected: bool| assert_check(prompt, expected, &document, &library);
 
-        params.prompt = "l1 l2";
-        assert!(check(&params));
-
-        params.prompt = "l3";
-        assert!(!check(&params));
-
-        params.prompt = "l1 l3";
-        assert!(!check(&params));
-
-        params.prompt = "l2 l3";
-        assert!(!check(&params));
-
-        params.prompt = "l1 l2 l3";
-        assert!(!check(&params));
-
-        params.prompt = "system:labeled";
-        assert!(check(&params));
-
-        params.prompt = "system:unlabeled";
-        assert!(!check(&params));
-
-        params.prompt = "not:system:labeled";
-        assert!(!check(&params));
-
-        params.prompt = "not:system:unlabeled";
-        assert!(check(&params));
-
-        params.prompt = "not:l1";
-        assert!(!check(&params));
-
-        params.prompt = "not:l3";
-        assert!(check(&params));
-
-        params.prompt = "explicit:l1";
-        assert!(check(&params));
-
-        params.prompt = "explicit:not:l3";
-        assert!(!check(&params));
-
-        params.prompt = "explicit:label";
-        assert!(check(&params));
-
-        params.prompt = "explicit:implied";
-        assert!(!check(&params));
-
-        // TODO: Add tests for `known` and `unknown`.
+        ac("l1", true);
+        ac("l2", true);
+        ac("l1 l2", true);
+        ac("l3", false);
+        ac("l1 l3", false);
+        ac("l2 l3", false);
+        ac("l1 l2 l3", false);
+        ac("system:labeled", true);
+        ac("system:unlabeled", false);
+        ac("not:system:labeled", false);
+        ac("not:system:unlabeled", true);
+        ac("not:l1", false);
+        ac("not:l3", true);
+        ac("explicit:l1", true);
+        ac("explicit:not:l3", false);
+        ac("explicit:label", true);
+        ac("explicit:implied", false);
     }
 }
