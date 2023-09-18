@@ -110,10 +110,9 @@ mod tests {
     }
 
     #[test]
-    fn check_works() {
+    fn check_with_unknown_labels() {
         let library = make_library();
         let document = make_document();
-
         let ac = |prompt: &str, expected: bool| assert_check(prompt, expected, &document, &library);
 
         ac("l1", true);
@@ -123,12 +122,36 @@ mod tests {
         ac("l1 l3", false);
         ac("l2 l3", false);
         ac("l1 l2 l3", false);
+    }
+
+    #[test]
+    fn check_with_system_labeled() {
+        let library = make_library();
+        let document = make_document();
+        let ac = |prompt: &str, expected: bool| assert_check(prompt, expected, &document, &library);
+
         ac("system:labeled", true);
         ac("system:unlabeled", false);
         ac("not:system:labeled", false);
         ac("not:system:unlabeled", true);
+    }
+
+    #[test]
+    fn check_with_unknown_not() {
+        let library = make_library();
+        let document = make_document();
+        let ac = |prompt: &str, expected: bool| assert_check(prompt, expected, &document, &library);
+
         ac("not:l1", false);
         ac("not:l3", true);
+    }
+
+    #[test]
+    fn check_with_explicit() {
+        let library = make_library();
+        let document = make_document();
+        let ac = |prompt: &str, expected: bool| assert_check(prompt, expected, &document, &library);
+
         ac("explicit:l1", true);
         ac("explicit:not:l3", false);
         ac("explicit:label", true);
