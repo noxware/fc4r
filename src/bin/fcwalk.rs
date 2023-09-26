@@ -1,16 +1,30 @@
 // TODO: Add a way to ignore certain directories. Specially the `fileclass` dir.
 
+use clap::Parser;
 use std::env;
 use std::fs;
 
 use fileclass::core::config::{Config, STD_CONFIG_DIR};
 use fileclass::extra::ipc::Message;
 
+#[derive(Parser, Debug)]
+#[command(author, version, about, long_about = None)]
+struct Args {
+    /// Do not load any config file
+    #[arg(long)]
+    no_config: bool,
+}
+
 fn main() {
+    let args = Args::parse();
+    let try_load_config = !args.no_config;
+
     // Get the current directory
     let current_dir = env::current_dir().unwrap();
 
-    load_config();
+    if try_load_config {
+        load_config();
+    }
 
     // Recursively traverse the directory tree
     traverse_directory(&current_dir, &current_dir);
