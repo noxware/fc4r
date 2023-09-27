@@ -3,6 +3,7 @@
 use clap::Parser;
 use std::env;
 use std::fs;
+use std::io;
 
 use fileclass::core::config::{Config, STD_CONFIG_DIR};
 use fileclass::extra::ipc::Message;
@@ -13,21 +14,36 @@ struct Args {
     /// Do not load any config file
     #[arg(long)]
     no_config: bool,
+
+    /// Do not output files/documents
+    #[arg(long)]
+    no_walk: bool,
+
+    /// Forward stdin to stdout after processing
+    #[arg(short, long)]
+    forward: bool,
 }
 
 fn main() {
     let args = Args::parse();
-    let try_load_config = !args.no_config;
 
-    // Get the current directory
+    let config_flag = !args.no_config;
+    let walk_flag = !args.no_walk;
+    let forward_flag = args.forward;
+
     let current_dir = env::current_dir().unwrap();
 
-    if try_load_config {
+    if config_flag {
         load_config();
     }
 
-    // Recursively traverse the directory tree
-    traverse_directory(&current_dir, &current_dir);
+    if walk_flag {
+        traverse_directory(&current_dir, &current_dir);
+    }
+
+    if forward_flag {
+        io::copy(&mut io::stdin(), &mut io::stdout()).unwrap();
+    }
 }
 
 fn traverse_directory(path: &std::path::Path, base_path: &std::path::Path) {

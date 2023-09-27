@@ -77,14 +77,14 @@ impl<const N: usize> From<[&str; N]> for LabelSet {
 }
 
 #[derive(Debug, Deserialize, Serialize, PartialEq, Eq, Clone)]
-struct LabelDef {
-    name: String,
-    aliases: Vec<String>,
-    implies: Vec<String>,
-    description: String,
+pub struct LabelDef {
+    pub name: String,
+    pub aliases: Vec<String>,
+    pub implies: Vec<String>,
+    pub description: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
 struct RawLabelDef {
     #[serde(default)]
     aliases: Vec<String>,
@@ -94,6 +94,7 @@ struct RawLabelDef {
     description: String,
 }
 
+// TODO: Doesn't make sense to use equality since that would depend on the order.
 #[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Eq)]
 pub struct LabelLibrary {
     label_defs: Vec<LabelDef>,
@@ -116,11 +117,20 @@ impl LabelLibrary {
         Ok(())
     }
 
+    pub fn define(&mut self, def: LabelDef) -> () {
+        if self.is_known(&def.name) {
+            panic!("Label '{}' already defined", def.name);
+        }
+
+        self.label_defs.push(def);
+    }
+
+    // TODO: Should this be a LabelSet? An iterator?
     pub fn label_names(&self) -> Vec<&str> {
         self.label_defs.iter().map(|l| l.name.as_str()).collect()
     }
 
-    fn get_label_def(&self, name: &str) -> Option<&LabelDef> {
+    pub fn get_label_def(&self, name: &str) -> Option<&LabelDef> {
         let def = self
             .label_defs
             .iter()
@@ -195,6 +205,22 @@ impl LabelLibrary {
             .collect();
 
         Self::build(labels)
+    }
+
+    pub fn to_toml(&self) -> String {
+        let mut raw_labels: HashMap<String, RawLabelDef> = HashMap::new();
+
+        for def in self.label_defs.iter() {
+            let raw = RawLabelDef {
+                aliases: def.aliases.clone(),
+                implies: def.implies.clone(),
+                description: def.description.clone(),
+            };
+
+            raw_labels.insert(def.name.clone(), raw);
+        }
+
+        toml::to_string(&raw_labels).unwrap()
     }
 }
 
@@ -388,5 +414,37 @@ pub mod tests {
         assert_eq!(library.is_known("purrr"), true);
 
         assert_eq!(library.is_known("unknown_label_name"), false);
+    }
+
+    #[test]
+    fn to_toml_works() {
+        let mut in_lib = setup_library();
+        let toml = in_lib.to_toml();
+
+        let mut out_lib = LabelLibrary::from_toml(&toml).unwrap();
+
+        in_lib.label_defs = in_lib
+            .label_defs
+            .into_iter()
+            .map(|mut l| {
+                l.aliases.sort();
+                l.implies.sort();
+                l
+            })
+            .collect();
+        in_lib.label_defs.sort_by(|a, b| a.name.cmp(&b.name));
+
+        out_lib.label_defs = out_lib
+            .label_defs
+            .into_iter()
+            .map(|mut l| {
+                l.aliases.sort();
+                l.implies.sort();
+                l
+            })
+            .collect();
+        out_lib.label_defs.sort_by(|a, b| a.name.cmp(&b.name));
+
+        assert_eq!(in_lib, out_lib);
     }
 }
