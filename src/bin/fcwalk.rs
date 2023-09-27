@@ -9,7 +9,7 @@ use fileclass::core::config::{Config, STD_CONFIG_DIR};
 use fileclass::extra::ipc::Message;
 
 #[derive(Parser, Debug)]
-#[command(author, version, about, long_about = None)]
+#[command(author, about, long_about = None)]
 struct Args {
     /// Do not load any config file
     #[arg(long)]

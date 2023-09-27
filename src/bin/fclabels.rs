@@ -15,7 +15,7 @@ enum Format {
 }
 
 #[derive(Parser, Debug)]
-#[command(author, version, about, long_about = None)]
+#[command(author, about, long_about = None)]
 struct Args {
     /// Use a specific output format
     #[arg(value_enum, short, long, default_value_t=Format::Table)]
