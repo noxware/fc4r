@@ -5,8 +5,18 @@ use tabled::{
 
 use clap::{Parser, ValueEnum};
 
-use fileclass::{core::label::LabelDef, extra::ipc::Message};
-use fileclass::{core::label::LabelLibrary, extra::input::read_stdin_messages};
+use fileclass::{
+    core::label::{LabelLibrary, LabelSet},
+    extra::input::read_stdin_messages,
+};
+use fileclass::{
+    core::{
+        document::Document,
+        label::LabelDef,
+        query::{check, CheckParams},
+    },
+    extra::ipc::Message,
+};
 
 #[derive(Debug, Clone, ValueEnum)]
 enum Format {
@@ -20,6 +30,11 @@ struct Args {
     /// Use a specific output format
     #[arg(value_enum, short, long, default_value_t=Format::Table)]
     format: Format,
+
+    // TODO: Consider turning this into positional arguments.
+    /// Only show labels that can match the provided query
+    #[arg(short, long)]
+    query: Option<String>,
 }
 
 #[derive(Tabled)]
@@ -43,6 +58,15 @@ fn main() {
             }
             Message::Document(d) => {
                 for label in d.labels {
+                    let passes_query = match &args.query {
+                        Some(query) => test_query(&library, &label, &query),
+                        None => true,
+                    };
+
+                    if !passes_query {
+                        continue;
+                    }
+
                     if library.is_known(&label) {
                         if !known_library.is_known(&label) {
                             known_library.define(library.get_label_def(&label).unwrap().clone());
@@ -67,6 +91,22 @@ fn main() {
         Format::Table => print_table(known_library, unknown_library),
         Format::Toml => print_toml(known_library, unknown_library),
     }
+}
+
+fn test_query(library: &LabelLibrary, label: &str, query: &str) -> bool {
+    let document = Document {
+        path: "".to_string(),
+        name: "".to_string(),
+        labels: LabelSet::from([label]),
+    };
+
+    let params = CheckParams {
+        prompt: query,
+        document: &document,
+        library,
+    };
+
+    check(&params)
 }
 
 fn print_toml(known_library: LabelLibrary, unknown_library: LabelLibrary) {
