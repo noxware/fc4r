@@ -1,7 +1,7 @@
+use crate::core::error::Error;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::collections::HashSet;
-use std::error::Error;
 use std::iter::FromIterator;
 use std::iter::IntoIterator;
 
@@ -101,7 +101,7 @@ pub struct LabelLibrary {
 }
 
 impl LabelLibrary {
-    fn build(defs: Vec<LabelDef>) -> Result<Self, Box<dyn Error>> {
+    fn build(defs: Vec<LabelDef>) -> Result<Self, Error> {
         Self::validate(&defs)?;
         Ok(Self { label_defs: defs })
     }
@@ -113,7 +113,60 @@ impl LabelLibrary {
     /// Validates that the label definitions are valid.
     ///
     /// This is a placeholder for now.
-    fn validate(_defs: &Vec<LabelDef>) -> Result<(), Box<dyn Error>> {
+    fn validate(defs: &Vec<LabelDef>) -> Result<(), Error> {
+        let duplicate_id_error = |name: &str| {
+            let detail = format!("duplicate label identifier '{}'", name);
+            Error::invalid_config(detail)
+        };
+
+        let missing_implied_error = |name: &str| {
+            let detail = format!("implied label '{}' is not defined", name);
+            Error::invalid_config(detail)
+        };
+
+        let duplicate_implied_error = |name: &str| {
+            let detail = format!("label '{}' implied multiple times", name);
+            Error::invalid_config(detail)
+        };
+
+        let mut already_defined = HashSet::new();
+
+        for def in defs.iter() {
+            let name = &def.name;
+
+            if already_defined.contains(name) {
+                return Err(duplicate_id_error(name));
+            }
+
+            already_defined.insert(name);
+
+            for alias in def.aliases.iter() {
+                if already_defined.contains(alias) {
+                    return Err(duplicate_id_error(alias));
+                }
+
+                already_defined.insert(alias);
+            }
+
+            let mut already_implied = HashSet::new();
+
+            for implied in def.implies.iter() {
+                if already_implied.contains(implied) {
+                    return Err(duplicate_implied_error(implied));
+                }
+
+                already_implied.insert(implied);
+            }
+        }
+
+        for def in defs.iter() {
+            for implied in def.implies.iter() {
+                if !already_defined.contains(implied) {
+                    return Err(missing_implied_error(implied));
+                }
+            }
+        }
+
         Ok(())
     }
 
@@ -192,8 +245,12 @@ impl LabelLibrary {
         }
     }
 
-    pub fn from_toml(toml: &str) -> Result<Self, Box<dyn Error>> {
-        let raw_labels: HashMap<String, RawLabelDef> = toml::from_str(toml)?;
+    pub fn from_toml(toml: &str) -> Result<Self, Error> {
+        let raw_labels: HashMap<String, RawLabelDef> = match toml::from_str(toml) {
+            Ok(raw) => raw,
+            Err(_) => return Err(Error::invalid_config("can't parse toml".to_string())),
+        };
+
         let labels = raw_labels
             .into_iter()
             .map(|(name, raw)| LabelDef {
@@ -204,7 +261,8 @@ impl LabelLibrary {
             })
             .collect();
 
-        Self::build(labels)
+        let built = Self::build(labels)?;
+        Ok(built)
     }
 
     pub fn to_toml(&self) -> String {

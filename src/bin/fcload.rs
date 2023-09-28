@@ -6,6 +6,7 @@ use std::fs;
 use std::io;
 
 use fileclass::core::config::{Config, STD_CONFIG_DIR};
+use fileclass::core::error::ErrorKind;
 use fileclass::extra::ipc::Message;
 
 #[derive(Parser, Debug)]
@@ -76,10 +77,14 @@ fn load_config() {
             let msg = Message::Config(config);
             println!("{}", msg.serialize());
         }
-        Err(e) => {
-            // TODO: Only warn if missing.
-            // TODO: Fail if the config is invalid.
-            eprintln!("Error loading config: {}", e);
-        }
+        Err(e) => match e.kind {
+            ErrorKind::MissingConfig => {
+                eprintln!("Warning: {}", e);
+            }
+            _ => {
+                eprintln!("Error: {}", e);
+                std::process::exit(1);
+            }
+        },
     }
 }
