@@ -74,10 +74,7 @@ impl Message {
 
 #[cfg(test)]
 mod tests {
-    use crate::core::{
-        config::Settings,
-        label::{LabelLibrary, LabelSet},
-    };
+    use crate::core::label::{LabelLibrary, LabelSet};
 
     use super::*;
 
@@ -133,13 +130,9 @@ mod tests {
             [implied]"#,
         )
         .unwrap();
-        let settings = Settings {
-            link_dir: "link_dir".to_string(),
-        };
 
         let msg = Message::Config(Config {
             labels: library.clone(),
-            settings: settings.clone(),
         });
         let serialized = msg.serialize();
         let deserialized = Message::deserialize(&serialized);
@@ -147,6 +140,5 @@ mod tests {
         assert_eq!(msg, deserialized);
         assert_eq!(library.resolve("alias"), "label");
         assert_eq!(library.resolve("implied"), "implied");
-        assert_eq!(settings.link_dir, "link_dir");
     }
 }

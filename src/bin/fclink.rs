@@ -7,16 +7,10 @@ use std::path::Path;
 use std::process;
 use std::{env, fs};
 
-use fileclass::core::config::Config;
 use fileclass::extra::input::{map_stdin_sources_to_target_folder, SourceTargetPair};
 
 fn get_link_dir(args: &Vec<String>) -> String {
     match args.len() {
-        1 => {
-            // TODO: Handle.
-            let config = Config::std_load().unwrap();
-            config.settings.link_dir
-        }
         2 => args[1].clone(),
         _ => {
             eprintln!("Usage: fclink <target_dir>");

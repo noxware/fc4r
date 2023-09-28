@@ -67,7 +67,7 @@ pub fn map_stdin_sources_to_target_folder(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::core::config::{Config, Settings};
+    use crate::core::config::Config;
     use crate::core::label::{LabelLibrary, LabelSet};
     use std::path::Path;
 
@@ -102,9 +102,6 @@ mod tests {
                         "#,
                     )
                     .unwrap(),
-                    settings: Settings {
-                        link_dir: "ld".to_string(),
-                    },
                 }),
                 Message::Document(Document {
                     // TODO: Should this be trimmed by Document?
