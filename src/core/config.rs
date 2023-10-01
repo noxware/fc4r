@@ -72,6 +72,7 @@ impl Config {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::core::error::ErrorKind;
 
     #[test]
     fn load_works() {
@@ -82,5 +83,23 @@ mod tests {
         let label_description = labels.get_description("label");
         assert_eq!(label_name, "label");
         assert_eq!(label_description, "a label");
+    }
+
+    #[test]
+    fn load_with_missing_config() {
+        let config = Config::load("test_dir/fileclass_missing");
+        assert_eq!(config.err().unwrap().kind, ErrorKind::MissingConfig);
+    }
+
+    #[test]
+    fn load_with_invalid_config_structure() {
+        let config = Config::load("test_dir/fileclass_invalid_structure");
+        assert_eq!(config.err().unwrap().kind, ErrorKind::InvalidConfig);
+    }
+
+    #[test]
+    fn load_with_invalid_toml() {
+        let config = Config::load("test_dir/fileclass_invalid_toml");
+        assert_eq!(config.err().unwrap().kind, ErrorKind::InvalidConfig);
     }
 }
