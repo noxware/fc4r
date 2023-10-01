@@ -6,6 +6,8 @@ pub enum ErrorKind {
     InvalidConfig,
     /// Configurations are missing
     MissingConfig,
+    /// An unexpected/unknown error occurred
+    Unexpected,
 }
 
 #[derive(Debug)]
@@ -40,6 +42,14 @@ impl Error {
         Error {
             kind: ErrorKind::MissingConfig,
             main_msg: "configurations are missing".to_string(),
+            detail_msg: Some(detail_msg),
+        }
+    }
+
+    pub fn unexpected(detail_msg: String) -> Self {
+        Error {
+            kind: ErrorKind::Unexpected,
+            main_msg: "an unexpected error occurred".to_string(),
             detail_msg: Some(detail_msg),
         }
     }

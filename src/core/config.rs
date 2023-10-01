@@ -6,7 +6,7 @@ use super::error::Error;
 use super::label::LabelLibrary;
 
 pub const STD_CONFIG_DIR: &str = "fileclass";
-pub const LABELS_FILENAME: &str = "labels.toml";
+pub const LABELS_DIRNAME: &str = "labels";
 
 #[derive(Debug, Deserialize, Serialize, PartialEq, Eq, Clone)]
 pub struct Config {
@@ -16,23 +16,40 @@ pub struct Config {
 impl Config {
     // TODO: Remove file system dependency from core.
     pub fn load(dir_path: &str) -> Result<Self, Error> {
-        let labels_path = Path::new(dir_path).join(LABELS_FILENAME);
-        let labels_content = match fs::read_to_string(labels_path) {
-            Ok(content) => content,
-            Err(e) => match e.kind() {
-                std::io::ErrorKind::NotFound => {
-                    return Err(Error::missing_config(format!(
-                        "labels file not found in {}",
-                        dir_path
-                    )))
+        let labels_path = Path::new(dir_path).join(LABELS_DIRNAME);
+        let rd = labels_path.read_dir().map_err(|e| {
+            if let std::io::ErrorKind::NotFound = e.kind() {
+                Error::missing_config(format!("labels directory not found in {}", dir_path))
+            } else {
+                Error::invalid_config(e.to_string())
+            }
+        })?;
+
+        let mut labels_content = String::new();
+        for entry in rd {
+            let entry = entry.map_err(|_| {
+                Error::unexpected(format!(
+                    "could not read the labels directory in {}",
+                    dir_path
+                ))
+            })?;
+            let path = entry.path();
+            let content = fs::read_to_string(&path).map_err(|e| {
+                if let std::io::ErrorKind::NotFound = e.kind() {
+                    Error::missing_config(format!(
+                        "label file {} disappeared before reading it",
+                        path.file_name().unwrap().to_string_lossy(),
+                    ))
+                } else {
+                    Error::invalid_config(e.to_string())
                 }
-                _ => return Err(Error::invalid_config(e.to_string())),
-            },
-        };
+            })?;
+            labels_content.push_str(&content);
+            labels_content.push('\n');
+        }
+
         let labels = LabelLibrary::from_toml(&labels_content)?;
-
         let config = Config { labels };
-
         Ok(config)
     }
 
