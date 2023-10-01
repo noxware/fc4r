@@ -9,6 +9,22 @@ use std::{env, fs};
 
 use fileclass::extra::input::{map_stdin_sources_to_target_folder, SourceTargetPair};
 
+#[cfg(windows)]
+fn symlink<S: AsRef<Path>, L: AsRef<Path>>(source: S, link: L) -> std::io::Result<()> {
+    use std::os::windows::fs::{symlink_dir, symlink_file};
+    if source.as_ref().is_dir() {
+        symlink_dir(source, link)
+    } else {
+        symlink_file(source, link)
+    }
+}
+
+#[cfg(not(windows))]
+fn symlink<S: AsRef<Path>, L: AsRef<Path>>(source: S, link: L) -> std::io::Result<()> {
+    use std::os::unix::fs::symlink;
+    symlink(source, link)
+}
+
 fn get_link_dir(args: &Vec<String>) -> String {
     match args.len() {
         2 => args[1].clone(),
@@ -51,9 +67,10 @@ fn main() {
         }
 
         // Hard link
-        if let Err(err) = fs::hard_link(&source, &target) {
+        // fs::hard_link(&source, &target)
+        if let Err(err) = symlink(fs::canonicalize(&source).unwrap(), &target) {
             eprintln!(
-                "Failed to create hard link for \"{}\": {}",
+                "Failed to create link for \"{}\": {}",
                 source.to_str().unwrap(),
                 err
             );
