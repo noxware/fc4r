@@ -35,6 +35,17 @@ fn get_link_dir(args: &Vec<String>) -> String {
     }
 }
 
+fn smart_link<S: AsRef<Path>, L: AsRef<Path>>(source: S, link: L) -> std::io::Result<()> {
+    let source = source.as_ref();
+    let link = link.as_ref();
+
+    if source.is_dir() {
+        symlink(source, link)
+    } else {
+        fs::hard_link(source, link).or_else(|_| symlink(source, link))
+    }
+}
+
 fn main() {
     let args: Vec<String> = env::args().collect();
     let link_dir = get_link_dir(&args);
@@ -57,18 +68,17 @@ fn main() {
 
         // Temporal safe guard for directories and other entities.
         // TODO: Support directories at least.
-        if !Path::new(&source).is_file() {
+        /*if !Path::new(&source).is_file() {
             eprintln!(
                 "Warning: \"{}\" is not a regular file, ignoring.",
                 source.to_str().unwrap()
             );
 
             return;
-        }
+        }*/
 
         // Hard link
-        // fs::hard_link(&source, &target)
-        if let Err(err) = symlink(fs::canonicalize(&source).unwrap(), &target) {
+        if let Err(err) = smart_link(fs::canonicalize(&source).unwrap(), &target) {
             eprintln!(
                 "Failed to create link for \"{}\": {}",
                 source.to_str().unwrap(),
