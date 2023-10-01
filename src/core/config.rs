@@ -15,11 +15,22 @@ pub struct Config {
 
 impl Config {
     // TODO: Remove file system dependency from core.
-    pub fn load(dir_path: &str) -> Result<Self, Error> {
-        let labels_path = Path::new(dir_path).join(LABELS_DIRNAME);
+    pub fn load<P: AsRef<Path>>(dir_path: P) -> Result<Self, Error> {
+        let dir_path = dir_path.as_ref();
+        if !dir_path.exists() {
+            return Err(Error::missing_config(format!(
+                "config directory {} does not exist",
+                dir_path.to_string_lossy()
+            )));
+        }
+
+        let labels_path = dir_path.join(LABELS_DIRNAME);
         let rd = labels_path.read_dir().map_err(|e| {
             if let std::io::ErrorKind::NotFound = e.kind() {
-                Error::missing_config(format!("labels directory not found in {}", dir_path))
+                Error::invalid_config(format!(
+                    "labels directory not found in {}",
+                    dir_path.to_string_lossy()
+                ))
             } else {
                 Error::invalid_config(e.to_string())
             }
@@ -30,13 +41,13 @@ impl Config {
             let entry = entry.map_err(|_| {
                 Error::unexpected(format!(
                     "could not read the labels directory in {}",
-                    dir_path
+                    dir_path.to_string_lossy()
                 ))
             })?;
             let path = entry.path();
             let content = fs::read_to_string(&path).map_err(|e| {
                 if let std::io::ErrorKind::NotFound = e.kind() {
-                    Error::missing_config(format!(
+                    Error::invalid_config(format!(
                         "label file {} disappeared before reading it",
                         path.file_name().unwrap().to_string_lossy(),
                     ))
