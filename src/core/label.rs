@@ -1,11 +1,11 @@
-use serde::Deserialize;
+use crate::core::error::Error;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::collections::HashSet;
-use std::error::Error;
 use std::iter::FromIterator;
 use std::iter::IntoIterator;
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct LabelSet(HashSet<String>);
 
 impl LabelSet {
@@ -76,14 +76,15 @@ impl<const N: usize> From<[&str; N]> for LabelSet {
     }
 }
 
-struct LabelDef {
-    name: String,
-    aliases: Vec<String>,
-    implies: Vec<String>,
-    description: String,
+#[derive(Debug, Deserialize, Serialize, PartialEq, Eq, Clone)]
+pub struct LabelDef {
+    pub name: String,
+    pub aliases: Vec<String>,
+    pub implies: Vec<String>,
+    pub description: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
 struct RawLabelDef {
     #[serde(default)]
     aliases: Vec<String>,
@@ -93,12 +94,14 @@ struct RawLabelDef {
     description: String,
 }
 
+// TODO: Doesn't make sense to use equality since that would depend on the order.
+#[derive(Debug, Deserialize, Serialize, Clone, PartialEq, Eq)]
 pub struct LabelLibrary {
     label_defs: Vec<LabelDef>,
 }
 
 impl LabelLibrary {
-    fn build(defs: Vec<LabelDef>) -> Result<Self, Box<dyn Error>> {
+    fn build(defs: Vec<LabelDef>) -> Result<Self, Error> {
         Self::validate(&defs)?;
         Ok(Self { label_defs: defs })
     }
@@ -110,15 +113,77 @@ impl LabelLibrary {
     /// Validates that the label definitions are valid.
     ///
     /// This is a placeholder for now.
-    fn validate(_defs: &Vec<LabelDef>) -> Result<(), Box<dyn Error>> {
+    fn validate(defs: &Vec<LabelDef>) -> Result<(), Error> {
+        let duplicate_id_error = |name: &str| {
+            let detail = format!("duplicate label identifier '{}'", name);
+            Error::invalid_config(detail)
+        };
+
+        let missing_implied_error = |name: &str| {
+            let detail = format!("implied label '{}' is not defined", name);
+            Error::invalid_config(detail)
+        };
+
+        let duplicate_implied_error = |name: &str| {
+            let detail = format!("label '{}' implied multiple times", name);
+            Error::invalid_config(detail)
+        };
+
+        let mut already_defined = HashSet::new();
+
+        for def in defs.iter() {
+            let name = &def.name;
+
+            if already_defined.contains(name) {
+                return Err(duplicate_id_error(name));
+            }
+
+            already_defined.insert(name);
+
+            for alias in def.aliases.iter() {
+                if already_defined.contains(alias) {
+                    return Err(duplicate_id_error(alias));
+                }
+
+                already_defined.insert(alias);
+            }
+
+            let mut already_implied = HashSet::new();
+
+            for implied in def.implies.iter() {
+                if already_implied.contains(implied) {
+                    return Err(duplicate_implied_error(implied));
+                }
+
+                already_implied.insert(implied);
+            }
+        }
+
+        for def in defs.iter() {
+            for implied in def.implies.iter() {
+                if !already_defined.contains(implied) {
+                    return Err(missing_implied_error(implied));
+                }
+            }
+        }
+
         Ok(())
     }
 
+    pub fn define(&mut self, def: LabelDef) -> () {
+        if self.is_known(&def.name) {
+            panic!("Label '{}' already defined", def.name);
+        }
+
+        self.label_defs.push(def);
+    }
+
+    // TODO: Should this be a LabelSet? An iterator?
     pub fn label_names(&self) -> Vec<&str> {
         self.label_defs.iter().map(|l| l.name.as_str()).collect()
     }
 
-    fn get_label_def(&self, name: &str) -> Option<&LabelDef> {
+    pub fn get_label_def(&self, name: &str) -> Option<&LabelDef> {
         let def = self
             .label_defs
             .iter()
@@ -180,8 +245,12 @@ impl LabelLibrary {
         }
     }
 
-    pub fn from_toml(toml: &str) -> Result<Self, Box<dyn Error>> {
-        let raw_labels: HashMap<String, RawLabelDef> = toml::from_str(toml)?;
+    pub fn from_toml(toml: &str) -> Result<Self, Error> {
+        let raw_labels: HashMap<String, RawLabelDef> = match toml::from_str(toml) {
+            Ok(raw) => raw,
+            Err(_) => return Err(Error::invalid_config("can't parse toml".to_string())),
+        };
+
         let labels = raw_labels
             .into_iter()
             .map(|(name, raw)| LabelDef {
@@ -192,7 +261,24 @@ impl LabelLibrary {
             })
             .collect();
 
-        Self::build(labels)
+        let built = Self::build(labels)?;
+        Ok(built)
+    }
+
+    pub fn to_toml(&self) -> String {
+        let mut raw_labels: HashMap<String, RawLabelDef> = HashMap::new();
+
+        for def in self.label_defs.iter() {
+            let raw = RawLabelDef {
+                aliases: def.aliases.clone(),
+                implies: def.implies.clone(),
+                description: def.description.clone(),
+            };
+
+            raw_labels.insert(def.name.clone(), raw);
+        }
+
+        toml::to_string(&raw_labels).unwrap()
     }
 }
 
@@ -386,5 +472,37 @@ pub mod tests {
         assert_eq!(library.is_known("purrr"), true);
 
         assert_eq!(library.is_known("unknown_label_name"), false);
+    }
+
+    #[test]
+    fn to_toml_works() {
+        let mut in_lib = setup_library();
+        let toml = in_lib.to_toml();
+
+        let mut out_lib = LabelLibrary::from_toml(&toml).unwrap();
+
+        in_lib.label_defs = in_lib
+            .label_defs
+            .into_iter()
+            .map(|mut l| {
+                l.aliases.sort();
+                l.implies.sort();
+                l
+            })
+            .collect();
+        in_lib.label_defs.sort_by(|a, b| a.name.cmp(&b.name));
+
+        out_lib.label_defs = out_lib
+            .label_defs
+            .into_iter()
+            .map(|mut l| {
+                l.aliases.sort();
+                l.implies.sort();
+                l
+            })
+            .collect();
+        out_lib.label_defs.sort_by(|a, b| a.name.cmp(&b.name));
+
+        assert_eq!(in_lib, out_lib);
     }
 }

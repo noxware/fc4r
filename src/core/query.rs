@@ -25,7 +25,7 @@ pub fn check(params: &CheckParams) -> bool {
         let mut extended_labels = document.labels.clone();
         extended_labels.expand_with(library);
 
-        if !check_table(document, &extended_labels, label) {
+        if !check_table(document, &extended_labels, label, &library) {
             matches = false;
             break;
         }
@@ -34,19 +34,32 @@ pub fn check(params: &CheckParams) -> bool {
     matches
 }
 
-fn check_table(document: &Document, labels: &LabelSet, current_label: &str) -> bool {
+fn check_table(
+    document: &Document,
+    labels: &LabelSet,
+    current_label: &str,
+    library: &LabelLibrary,
+) -> bool {
     match current_label.split_once(PSEUDO_DELIMITER) {
-        Some((prefix, suffix)) => check_pseudo(document, labels, prefix, suffix),
+        Some((prefix, suffix)) => check_pseudo(document, labels, prefix, suffix, library),
         None => check_presence(labels, current_label),
     }
 }
 
-fn check_pseudo(document: &Document, labels: &LabelSet, prefix: &str, suffix: &str) -> bool {
+fn check_pseudo(
+    document: &Document,
+    labels: &LabelSet,
+    prefix: &str,
+    suffix: &str,
+    library: &LabelLibrary,
+) -> bool {
     // TODO: Refator each type of pseudo matcher into it's own matcher module.
     match (prefix, suffix) {
         ("system", "unlabeled") => labels.is_empty(),
         ("system", "labeled") => !labels.is_empty(),
-        ("not", _) => !check_table(document, labels, suffix),
+        ("system", "unknown") => labels.iter().any(|l| !library.is_known(l)),
+        ("system", "known") => labels.iter().any(|l| library.is_known(l)),
+        ("not", _) => !check_table(document, labels, suffix, library),
         ("explicit", _) => check_presence(&document.labels, suffix),
         _ => false,
     }
@@ -61,80 +74,110 @@ mod tests {
     use super::*;
     use crate::core::label::LabelSet;
 
-    #[test]
-    fn check_works() {
-        let toml = r#"
+    fn make_document() -> Document {
+        Document {
+            path: "".into(),
+            name: "".into(),
+            labels: LabelSet::from(["l1", "l2", "label"]),
+        }
+    }
+
+    fn make_library() -> LabelLibrary {
+        let toml = format!(
+            r#"
             [label]
             aliases = ["alias"]
             implies = ["implied"]
             description = "a label"
 
             [implied]
-        "#;
+        "#,
+        );
 
-        let library = LabelLibrary::from_toml(toml).unwrap();
+        LabelLibrary::from_toml(&toml).unwrap()
+    }
 
-        let document = Document {
-            path: "".into(),
-            name: "name".into(),
-            labels: LabelSet::from(["l1", "l2", "label"]),
+    fn assert_check(prompt: &str, expected: bool, document: &Document, library: &LabelLibrary) {
+        let params = CheckParams {
+            prompt,
+            document,
+            library,
         };
 
-        let mut params = CheckParams {
-            prompt: "",
-            document: &document,
-            library: &library,
+        assert_eq!(check(&params), expected);
+    }
+
+    #[test]
+    fn check_with_unknown_labels() {
+        let library = make_library();
+        let document = make_document();
+        let ac = |prompt: &str, expected: bool| assert_check(prompt, expected, &document, &library);
+
+        ac("l1", true);
+        ac("l2", true);
+        ac("l1 l2", true);
+        ac("l3", false);
+        ac("l1 l3", false);
+        ac("l2 l3", false);
+        ac("l1 l2 l3", false);
+    }
+
+    #[test]
+    fn check_with_system_labeled() {
+        let library = make_library();
+        let document = make_document();
+        let ac = |prompt: &str, expected: bool| assert_check(prompt, expected, &document, &library);
+
+        ac("system:labeled", true);
+        ac("system:unlabeled", false);
+        ac("not:system:labeled", false);
+        ac("not:system:unlabeled", true);
+    }
+
+    #[test]
+    fn check_with_unknown_not() {
+        let library = make_library();
+        let document = make_document();
+        let ac = |prompt: &str, expected: bool| assert_check(prompt, expected, &document, &library);
+
+        ac("not:l1", false);
+        ac("not:l3", true);
+    }
+
+    #[test]
+    fn check_with_explicit() {
+        let library = make_library();
+        let document = make_document();
+        let ac = |prompt: &str, expected: bool| assert_check(prompt, expected, &document, &library);
+
+        ac("explicit:l1", true);
+        ac("explicit:not:l3", false);
+        ac("explicit:label", true);
+        ac("explicit:implied", false);
+    }
+
+    #[test]
+    fn check_with_system_known() {
+        let library = make_library();
+        let mut document = make_document();
+        let ac = |prompt: &str, expected: bool, document: &Document| {
+            assert_check(prompt, expected, &document, &library)
         };
 
-        params.prompt = "l1";
-        assert!(check(&params));
+        document.labels = LabelSet::from(["l1", "label"]);
+        ac("system:known", true, &document);
+        ac("system:unknown", true, &document);
+        // Proof of `not:system:known != system:unknown`.
+        ac("not:system:known", false, &document);
 
-        params.prompt = "l2";
-        assert!(check(&params));
+        document.labels = LabelSet::from(["l1", "l2"]);
+        ac("system:known", false, &document);
+        ac("system:unknown", true, &document);
+        ac("not:system:known", true, &document);
 
-        params.prompt = "l1 l2";
-        assert!(check(&params));
-
-        params.prompt = "l3";
-        assert!(!check(&params));
-
-        params.prompt = "l1 l3";
-        assert!(!check(&params));
-
-        params.prompt = "l2 l3";
-        assert!(!check(&params));
-
-        params.prompt = "l1 l2 l3";
-        assert!(!check(&params));
-
-        params.prompt = "system:labeled";
-        assert!(check(&params));
-
-        params.prompt = "system:unlabeled";
-        assert!(!check(&params));
-
-        params.prompt = "not:system:labeled";
-        assert!(!check(&params));
-
-        params.prompt = "not:system:unlabeled";
-        assert!(check(&params));
-
-        params.prompt = "not:l1";
-        assert!(!check(&params));
-
-        params.prompt = "not:l3";
-        assert!(check(&params));
-
-        params.prompt = "explicit:l1";
-        assert!(check(&params));
-
-        params.prompt = "explicit:not:l3";
-        assert!(!check(&params));
-
-        params.prompt = "explicit:label";
-        assert!(check(&params));
-
-        params.prompt = "explicit:implied";
-        assert!(!check(&params));
+        document.labels = LabelSet::from(["label", "implied"]);
+        ac("system:known", true, &document);
+        ac("system:unknown", false, &document);
+        ac("not:system:known", false, &document);
     }
 }

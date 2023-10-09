@@ -1,15 +1,16 @@
-use fileclass::core::{
-    config::Config,
-    query::{check, CheckParams},
+use fileclass::{
+    core::{
+        label::LabelLibrary,
+        query::{check, CheckParams},
+    },
+    extra::{input::read_stdin_messages, ipc::Message},
 };
-
-use fileclass::extra::input::read_stdin_documents;
 
 use std::env;
 
 // TODO: Handle errors here.
 fn main() {
-    let config = Config::std_load().expect("Can't load config");
+    let mut library = LabelLibrary::empty();
     let args: Vec<String> = env::args().collect();
 
     if args.len() < 2 {
@@ -18,15 +19,23 @@ fn main() {
 
     let prompt = &args[1..].join(" ");
 
-    let result = read_stdin_documents().filter(|d| {
-        let params = CheckParams {
-            prompt: &prompt,
-            document: &d,
-            library: &config.labels,
-        };
+    for msg in read_stdin_messages() {
+        match msg {
+            Message::Config(c) => {
+                library = c.labels;
+            }
+            Message::Document(d) => {
+                let params = CheckParams {
+                    prompt: &prompt,
+                    document: &d,
+                    library: &library,
+                };
 
-        check(&params)
-    });
-
-    result.for_each(|d| println!("{}", d.path));
+                if check(&params) {
+                    println!("{}", d.path);
+                }
+            }
+            _ => panic!("Unexpected message"),
+        }
+    }
 }

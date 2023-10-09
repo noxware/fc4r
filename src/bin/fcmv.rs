@@ -14,9 +14,13 @@ fn main() {
     map_stdin_sources_to_target_folder(target_folder.to_path_buf()).for_each(|p| {
         let SourceTargetPair { source, target } = p;
 
-        if let Err(err) = fs::rename(&source, &target) {
-            eprintln!("Failed to move file: {}", err);
-            process::exit(1);
+        if let Some(target) = target {
+            if let Err(err) = fs::rename(&source, &target) {
+                eprintln!("Failed to move file: {}", err);
+                process::exit(1);
+            }
+        } else {
+            eprintln!("Ignoring file: {}", source.display());
         }
     });
 }
