@@ -33,7 +33,7 @@ pub fn read_stdin_documents() -> impl Iterator<Item = Document> {
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct SourceTargetPair {
     pub source: PathBuf,
-    pub target: PathBuf,
+    pub target: Option<PathBuf>,
 }
 
 fn map_sources_to_target_folder(

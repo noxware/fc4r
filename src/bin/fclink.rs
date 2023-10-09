@@ -8,6 +8,7 @@ use std::process;
 use std::{env, fs};
 
 use fileclass::extra::input::{map_stdin_sources_to_target_folder, SourceTargetPair};
+use fileclass::utils::fs::PathExt;
 
 #[cfg(windows)]
 fn symlink<S: AsRef<Path>, L: AsRef<Path>>(source: S, link: L) -> std::io::Result<()> {
@@ -64,8 +65,6 @@ fn main() {
     map_stdin_sources_to_target_folder(target_folder.to_path_buf()).for_each(|p| {
         let SourceTargetPair { source, target } = p;
 
-        println!("{}", target.to_str().unwrap());
-
         // Temporal safe guard for directories and other entities.
         // TODO: Support directories at least.
         /*if !Path::new(&source).is_file() {
@@ -77,14 +76,20 @@ fn main() {
             return;
         }*/
 
-        // Hard link
-        if let Err(err) = smart_link(fs::canonicalize(&source).unwrap(), &target) {
-            eprintln!(
-                "Failed to create link for \"{}\": {}",
-                source.to_str().unwrap(),
-                err
-            );
-            process::exit(1);
+        if let Some(target) = target {
+            println!("{}", target.to_str().unwrap());
+            // Canonicalize the source path to avoid problems with symlinks. However, the link
+            // will point to the original file if source is a symlink.
+            if let Err(err) = smart_link(&source.unc_safe_canonicalize().unwrap(), &target) {
+                eprintln!(
+                    "Failed to create link for \"{}\": {}",
+                    source.to_str().unwrap(),
+                    err
+                );
+                process::exit(1);
+            }
+        } else {
+            eprintln!("Ignoring file: {}", source.display());
         }
     });
 }

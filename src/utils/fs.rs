@@ -12,7 +12,22 @@ pub fn get_suffix(path: &Path) -> &str {
     &file_name[first_dot_index..]
 }
 
-pub fn get_unique_target(source_path: &Path, target_dir: &Path) -> PathBuf {
+pub fn get_unique_target(source_path: &Path, target_dir: &Path) -> Option<PathBuf> {
+    // Don't canonicalize `source_path`. Because of symlink resolution that's not equivalent.
+    let source_parent = source_path
+        .parent()
+        .unwrap()
+        .unc_safe_canonicalize()
+        .unwrap();
+    let target_dir = target_dir.unc_safe_canonicalize().unwrap();
+
+    // TODO: Test symlinks in the middle, at the end.
+    // TODO: Test that this if works.
+    // The file is already in the target directory.
+    if source_parent == target_dir {
+        return None;
+    }
+
     let mut target_file = target_dir.join(source_path.file_name().unwrap());
     let mut index = 1;
 
@@ -24,7 +39,23 @@ pub fn get_unique_target(source_path: &Path, target_dir: &Path) -> PathBuf {
         index += 1;
     }
 
-    target_file
+    Some(target_file)
+}
+
+// On Windows, `canonicalize` will give you a UNC path. This tries to not do so.
+pub fn unc_safe_canonicalize<P: AsRef<Path>>(path: P) -> std::io::Result<PathBuf> {
+    let path = path.as_ref();
+    dunce::canonicalize(path)
+}
+
+pub trait PathExt {
+    fn unc_safe_canonicalize(&self) -> std::io::Result<PathBuf>;
+}
+
+impl<P: AsRef<Path>> PathExt for P {
+    fn unc_safe_canonicalize(&self) -> std::io::Result<PathBuf> {
+        unc_safe_canonicalize(self)
+    }
 }
 
 #[cfg(test)]
@@ -57,28 +88,28 @@ mod tests {
         let target_dir = Path::new("test_dir");
         assert_eq!(
             get_unique_target(source_path, target_dir),
-            Path::new("test_dir/a.txt")
+            Some(PathBuf::from("test_dir/a.txt"))
         );
 
         let source_path = Path::new("test_dir/files/a.txt");
         let target_dir = Path::new("test_dir/files");
         assert_eq!(
             get_unique_target(source_path, target_dir),
-            Path::new("test_dir/files/a (1).txt")
+            Some(PathBuf::from("test_dir/files/a (1).txt"))
         );
 
         let source_path = Path::new("test_dir/files/b.ext.txt");
         let target_dir = Path::new("test_dir/files");
         assert_eq!(
             get_unique_target(source_path, target_dir),
-            Path::new("test_dir/files/b (2).ext.txt")
+            Some(PathBuf::from("test_dir/files/b (2).ext.txt"))
         );
 
         let source_path = Path::new("test_dir/files/");
         let target_dir = Path::new("test_dir/");
         assert_eq!(
             get_unique_target(source_path, target_dir),
-            Path::new("test_dir/files (1)")
+            Some(PathBuf::from("test_dir/files (1)"))
         );
     }
 }
